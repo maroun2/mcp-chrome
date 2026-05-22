@@ -12,6 +12,16 @@
 
 > The project is still in its early stages and is under intensive development. More features, stability improvements, and other enhancements will follow.
 
+## VPS Bridge + Approval Setup
+
+Run bridge on local machine or VPS:
+
+```bash
+BRIDGE_HOST=0.0.0.0 BRIDGE_PORT=12306 BRIDGE_TOKEN=your-secret node app/native-server/dist/index.js
+```
+
+If `BRIDGE_TOKEN` is omitted, bridge creates `~/.agor/browser-bridge.token`. MCP clients must send `Authorization: Bearer <token>` to `/mcp`, `/sse`, and `/messages`. In Chrome extension options, set `Server URL` (for example `ws://107.172.1.123:12306`) and `Token`. Write tools require approval in side panel before execution.
+
 ---
 
 ## 🎯 What is Chrome MCP Server?

@@ -29,6 +29,8 @@ import { CodexEngine } from '../agent/engines/codex';
 import { ClaudeEngine } from '../agent/engines/claude';
 import { closeDb } from '../agent/db';
 import { registerAgentRoutes } from './routes';
+import { getBridgeHost, getBridgePort, getBridgeToken, isValidBearerAuth } from '../bridge-config';
+import { bridgeWsManager } from '../bridge-ws';
 
 // ============================================================
 // Types
@@ -60,6 +62,7 @@ export class Server {
     });
     this.setupPlugins();
     this.setupRoutes();
+    this.setupWebSocketBridge();
   }
 
   /**
@@ -165,8 +168,13 @@ export class Server {
   // ============================================================
 
   private setupMcpRoutes(): void {
+    const requireAuth = async (request: FastifyRequest, reply: FastifyReply) => {
+      if (isValidBearerAuth(request.headers.authorization)) return;
+      reply.code(HTTP_STATUS.UNAUTHORIZED).send({ error: 'Unauthorized' });
+    };
+
     // SSE endpoint
-    this.fastify.get('/sse', async (_, reply) => {
+    this.fastify.get('/sse', { preHandler: requireAuth }, async (_, reply) => {
       try {
         reply.raw.writeHead(HTTP_STATUS.OK, {
           'Content-Type': 'text/event-stream',
@@ -193,7 +201,7 @@ export class Server {
     });
 
     // SSE messages endpoint
-    this.fastify.post('/messages', async (req, reply) => {
+    this.fastify.post('/messages', { preHandler: requireAuth }, async (req, reply) => {
       try {
         const { sessionId } = req.query as { sessionId?: string };
         const transport = this.transportsMap.get(sessionId || '') as SSEServerTransport;
@@ -211,7 +219,7 @@ export class Server {
     });
 
     // MCP POST endpoint
-    this.fastify.post('/mcp', async (request, reply) => {
+    this.fastify.post('/mcp', { preHandler: requireAuth }, async (request, reply) => {
       const sessionId = request.headers['mcp-session-id'] as string | undefined;
       let transport: StreamableHTTPServerTransport | undefined = this.transportsMap.get(
         sessionId || '',
@@ -253,7 +261,7 @@ export class Server {
     });
 
     // MCP GET endpoint (SSE stream)
-    this.fastify.get('/mcp', async (request, reply) => {
+    this.fastify.get('/mcp', { preHandler: requireAuth }, async (request, reply) => {
       const sessionId = request.headers['mcp-session-id'] as string | undefined;
       const transport = sessionId
         ? (this.transportsMap.get(sessionId) as StreamableHTTPServerTransport)
@@ -286,7 +294,7 @@ export class Server {
     });
 
     // MCP DELETE endpoint
-    this.fastify.delete('/mcp', async (request, reply) => {
+    this.fastify.delete('/mcp', { preHandler: requireAuth }, async (request, reply) => {
       const sessionId = request.headers['mcp-session-id'] as string | undefined;
       const transport = sessionId
         ? (this.transportsMap.get(sessionId) as StreamableHTTPServerTransport)
@@ -312,11 +320,23 @@ export class Server {
     });
   }
 
+  private setupWebSocketBridge(): void {
+    bridgeWsManager.start();
+    this.fastify.server.on('upgrade', (request, socket, head) => {
+      if (!bridgeWsManager.handleUpgrade(request, socket as import('node:net').Socket, head)) {
+        socket.destroy();
+      }
+    });
+  }
+
   // ============================================================
   // Server Lifecycle
   // ============================================================
 
-  public async start(port = NATIVE_SERVER_PORT, nativeHost: NativeMessagingHost): Promise<void> {
+  public async start(
+    port = getBridgePort(NATIVE_SERVER_PORT),
+    nativeHost: NativeMessagingHost,
+  ): Promise<void> {
     if (!this.nativeHost) {
       this.nativeHost = nativeHost;
     } else if (this.nativeHost !== nativeHost) {
@@ -328,11 +348,14 @@ export class Server {
     }
 
     try {
-      await this.fastify.listen({ port, host: SERVER_CONFIG.HOST });
+      const host = getBridgeHost();
+      const token = getBridgeToken();
+      await this.fastify.listen({ port, host });
 
       // Set port environment variables after successful listen for Chrome MCP URL resolution
       process.env.CHROME_MCP_PORT = String(port);
       process.env.MCP_HTTP_PORT = String(port);
+      process.env.BRIDGE_TOKEN = token;
 
       this.isRunning = true;
     } catch (err) {
