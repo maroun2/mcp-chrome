@@ -1,8 +1,8 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { NATIVE_SERVER_PORT } from '../constant/index.js';
-import { getBridgeToken } from '../bridge-config.js';
+import { NATIVE_SERVER_PORT } from '../constant';
+import { getBridgeToken } from '../bridge-config';
 
 export interface CliToolInvocation {
   /**

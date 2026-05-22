@@ -23,7 +23,7 @@ export interface ActionHistoryItem {
 
 let ws: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-let bridgeUrl = BRIDGE_SERVER.DEFAULT_URL;
+let bridgeUrl: string = BRIDGE_SERVER.DEFAULT_URL;
 let bridgeToken = '';
 const pendingApprovals = new Map<string, ApprovalRequest>();
 const pendingPayloads = new Map<string, { name: string; args: any }>();
