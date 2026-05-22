@@ -11,6 +11,24 @@
     </header>
 
     <section class="create">
+      <h2>Bridge server</h2>
+      <div class="grid">
+        <label>
+          Server URL
+          <input v-model="bridgeSettings.serverUrl" placeholder="ws://127.0.0.1:12306" />
+        </label>
+        <label>
+          Token
+          <input v-model="bridgeSettings.token" type="password" placeholder="Bearer token" />
+        </label>
+      </div>
+      <div class="row">
+        <button :disabled="bridgeSaving" @click="saveBridgeSettings">Save bridge settings</button>
+        <span class="hint" v-if="bridgeSaved">{{ bridgeSaved }}</span>
+      </div>
+    </section>
+
+    <section class="create">
       <h2>{{ m('createRunSectionTitle') }}</h2>
       <div class="grid">
         <label>
@@ -144,7 +162,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { TOOL_NAMES } from 'chrome-mcp-shared';
-import { STORAGE_KEYS } from '@/common/constants';
+import { BRIDGE_SERVER, STORAGE_KEYS } from '@/common/constants';
 
 type ListItem = {
   id: string;
@@ -175,6 +193,12 @@ const form = ref({
 
 const submitting = ref(false);
 const lastResult = ref('');
+const bridgeSaving = ref(false);
+const bridgeSaved = ref('');
+const bridgeSettings = ref({
+  serverUrl: BRIDGE_SERVER.DEFAULT_URL,
+  token: '',
+});
 
 function formatTime(ts?: number) {
   if (!ts) return '';
@@ -194,6 +218,31 @@ async function saveEmergency() {
 async function loadEmergency() {
   const v = await globalThis.chrome?.storage?.local.get([STORAGE_KEYS.USERSCRIPTS_DISABLED] as any);
   emergencyDisabled.value = !!v[STORAGE_KEYS.USERSCRIPTS_DISABLED];
+}
+
+async function loadBridgeSettings() {
+  const values = await globalThis.chrome?.storage?.sync.get([
+    STORAGE_KEYS.BRIDGE_SERVER_URL,
+    STORAGE_KEYS.BRIDGE_TOKEN,
+  ] as any);
+  bridgeSettings.value.serverUrl =
+    values?.[STORAGE_KEYS.BRIDGE_SERVER_URL] || BRIDGE_SERVER.DEFAULT_URL;
+  bridgeSettings.value.token = values?.[STORAGE_KEYS.BRIDGE_TOKEN] || '';
+}
+
+async function saveBridgeSettings() {
+  bridgeSaving.value = true;
+  bridgeSaved.value = '';
+  try {
+    await globalThis.chrome?.storage?.sync.set({
+      [STORAGE_KEYS.BRIDGE_SERVER_URL]:
+        bridgeSettings.value.serverUrl.trim() || BRIDGE_SERVER.DEFAULT_URL,
+      [STORAGE_KEYS.BRIDGE_TOKEN]: bridgeSettings.value.token.trim(),
+    });
+    bridgeSaved.value = 'Saved';
+  } finally {
+    bridgeSaving.value = false;
+  }
 }
 
 async function callTool(name: string, args: any) {
@@ -290,6 +339,7 @@ async function exportAll() {
 }
 
 onMounted(async () => {
+  await loadBridgeSettings();
   await loadEmergency();
   await reload();
 });

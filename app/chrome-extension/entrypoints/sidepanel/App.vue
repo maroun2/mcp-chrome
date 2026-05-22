@@ -1,5 +1,39 @@
 <template>
   <div class="h-full w-full bg-slate-50 relative agent-theme" :data-agent-theme="currentTheme">
+    <div class="bridge-approval-panel">
+      <div class="bridge-status">
+        <span
+          :class="['bridge-dot', bridgeState.connected ? 'bridge-dot-ok' : 'bridge-dot-bad']"
+        ></span>
+        <span>{{ bridgeState.connected ? 'Connected' : 'Disconnected' }}</span>
+        <span class="bridge-url">{{ bridgeState.serverUrl }}</span>
+      </div>
+
+      <div v-for="approval in bridgeState.pending" :key="approval.id" class="approval-card">
+        <div class="approval-title">
+          <strong>{{ approval.name }}</strong>
+          <span>{{ countdown(approval.expiresAt) }}s</span>
+        </div>
+        <div class="approval-url">{{ approval.currentUrl || 'Unknown page' }}</div>
+        <pre class="approval-args">{{ pretty(approval.args) }}</pre>
+        <div class="approval-actions">
+          <button class="approval-approve" @click="approveBridgeAction(approval.id)"
+            >Approve</button
+          >
+          <button class="approval-deny" @click="denyBridgeAction(approval.id)">Deny</button>
+        </div>
+      </div>
+
+      <div v-if="bridgeState.history.length" class="approval-history">
+        <div class="history-title">Recent actions</div>
+        <div v-for="item in bridgeState.history" :key="item.id" class="history-row">
+          <span>{{ item.name }}</span>
+          <span>{{ item.status }}</span>
+          <span>{{ formatBridgeTime(item.timestamp) }}</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Sidepanel Navigator - only show on workflows/element-markers pages -->
     <SidepanelNavigator
       v-if="activeTab !== 'agent-chat'"
@@ -301,6 +335,62 @@ const { theme: currentTheme, initTheme } = useAgentTheme();
 
 // Tab state - default to AgentChat
 const activeTab = ref<'workflows' | 'element-markers' | 'agent-chat'>('agent-chat');
+const now = ref(Date.now());
+const bridgeState = ref<{
+  connected: boolean;
+  serverUrl: string;
+  pending: Array<{
+    id: string;
+    name: string;
+    args: any;
+    currentUrl: string;
+    expiresAt: number;
+  }>;
+  history: Array<{
+    id: string;
+    name: string;
+    status: string;
+    timestamp: number;
+  }>;
+}>({
+  connected: false,
+  serverUrl: '',
+  pending: [],
+  history: [],
+});
+
+function pretty(value: any) {
+  try {
+    return JSON.stringify(value ?? {}, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function countdown(expiresAt: number) {
+  return Math.max(0, Math.ceil((expiresAt - now.value) / 1000));
+}
+
+function formatBridgeTime(timestamp: number) {
+  return new Date(timestamp).toLocaleTimeString();
+}
+
+async function approveBridgeAction(id: string) {
+  await chrome.runtime.sendMessage({ type: BACKGROUND_MESSAGE_TYPES.BRIDGE_APPROVE_ACTION, id });
+}
+
+async function denyBridgeAction(id: string) {
+  await chrome.runtime.sendMessage({ type: BACKGROUND_MESSAGE_TYPES.BRIDGE_DENY_ACTION, id });
+}
+
+async function loadBridgeState() {
+  const res: any = await chrome.runtime.sendMessage({
+    type: BACKGROUND_MESSAGE_TYPES.GET_BRIDGE_STATUS,
+  });
+  if (res?.success && res.state) {
+    bridgeState.value = res.state;
+  }
+}
 
 // Handle tab change and update URL for deep linking
 function handleTabChange(tab: 'workflows' | 'element-markers' | 'agent-chat') {
@@ -725,6 +815,22 @@ watch(markerSearch, (query) => {
 onMounted(async () => {
   // Initialize theme
   await initTheme();
+  await loadBridgeState();
+  const clock = setInterval(() => {
+    now.value = Date.now();
+  }, 1000);
+  (window as any).__bridgeClock = clock;
+
+  const onBridgeMessage = (message: any) => {
+    if (
+      message?.type === BACKGROUND_MESSAGE_TYPES.BRIDGE_APPROVALS_CHANGED ||
+      message?.type === BACKGROUND_MESSAGE_TYPES.BRIDGE_STATUS_CHANGED
+    ) {
+      bridgeState.value = message.payload;
+    }
+  };
+  chrome.runtime.onMessage.addListener(onBridgeMessage);
+  (window as any).__bridgeMessageListener = onBridgeMessage;
 
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -755,12 +861,116 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  const clock = (window as any).__bridgeClock;
+  if (clock) clearInterval(clock);
+  const listener = (window as any).__bridgeMessageListener;
+  if (listener) chrome.runtime.onMessage.removeListener(listener);
   // V3 workflows cleanup is handled by useWorkflowsV3 composable
   // No additional cleanup needed
 });
 </script>
 
 <style scoped>
+.bridge-approval-panel {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.bridge-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #334155;
+}
+
+.bridge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ef4444;
+}
+
+.bridge-dot-ok {
+  background: #22c55e;
+}
+
+.bridge-dot-bad {
+  background: #ef4444;
+}
+
+.bridge-url,
+.approval-url {
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.approval-card {
+  margin-top: 8px;
+  border: 1px solid #f59e0b;
+  background: #fffbeb;
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.approval-title,
+.approval-actions,
+.history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.approval-args {
+  max-height: 120px;
+  overflow: auto;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 8px;
+  margin: 8px 0;
+  font-size: 11px;
+}
+
+.approval-actions button {
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.approval-approve {
+  background: #16a34a;
+}
+
+.approval-deny {
+  background: #dc2626;
+}
+
+.approval-history {
+  margin-top: 8px;
+  color: #475569;
+}
+
+.history-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.history-row {
+  font-size: 11px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 4px;
+}
+
 /* reuse popup styles; only tune list item spacing for sidepanel width */
 .rr-item {
   margin-bottom: 8px;
