@@ -15,7 +15,7 @@ export interface RunQueueConfig {
   maxParallelRuns: number;
   /** 租约 TTL（毫秒） */
   leaseTtlMs: number;
-  /** 心跳间隔（毫秒） */
+  /** heartbeat间隔（毫秒） */
   heartbeatIntervalMs: number;
 }
 
@@ -37,7 +37,7 @@ export type QueueItemStatus = 'queued' | 'running' | 'paused';
  * 租约信息
  */
 export interface Lease {
-  /** 持有者 ID */
+  /** Holder ID */
   ownerId: string;
   /** 过期时间 */
   expiresAt: UnixMillis;
@@ -104,16 +104,16 @@ export interface RunQueue {
   enqueue(input: EnqueueInput): Promise<RunQueueItem>;
 
   /**
-   * 领取下一个可执行的 Run
-   * @param ownerId 领取者 ID
+   * acquire下一个可执行的 Run
+   * @param ownerId Acquirer ID
    * @param now 当前时间
    * @returns 队列项或 null
    */
   claimNext(ownerId: string, now: UnixMillis): Promise<RunQueueItem | null>;
 
   /**
-   * 续约心跳
-   * @param ownerId 领取者 ID
+   * renewheartbeat
+   * @param ownerId Acquirer ID
    * @param now 当前时间
    */
   heartbeat(ownerId: string, now: UnixMillis): Promise<void>;
@@ -133,7 +133,7 @@ export interface RunQueue {
    * - 将孤儿 paused 项接管（保持 status=paused，租约 ownerId 更新为新 ownerId）
    * @param ownerId 新的 ownerId（当前 Service Worker 实例）
    * @param now 当前时间
-   * @returns 受影响的 runId 列表（含原 ownerId 用于审计）
+   * @returns 受影响的 runId 列表（含原 ownerId 用于audit）
    */
   recoverOrphanLeases(
     ownerId: string,
@@ -144,17 +144,17 @@ export interface RunQueue {
   }>;
 
   /**
-   * 标记为 running
+   * mark为 running
    */
   markRunning(runId: RunId, ownerId: string, now: UnixMillis): Promise<void>;
 
   /**
-   * 标记为 paused
+   * mark为 paused
    */
   markPaused(runId: RunId, ownerId: string, now: UnixMillis): Promise<void>;
 
   /**
-   * 标记为完成（从队列移除）
+   * mark为完成（从队列移除）
    */
   markDone(runId: RunId, now: UnixMillis): Promise<void>;
 

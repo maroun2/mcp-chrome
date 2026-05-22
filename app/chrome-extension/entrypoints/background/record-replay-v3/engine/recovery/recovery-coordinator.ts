@@ -1,7 +1,7 @@
 /**
- * @fileoverview 崩溃恢复协调器 (P3-06)
+ * @fileoverview crash恢复coordinate器 (P3-06)
  * @description
- * MV3 Service Worker 可能随时被终止。此协调器在 SW 启动时协调队列状态和 Run 记录，
+ * MV3 Service Worker 可能随时被终止。此coordinate器在 SW 启动时coordinate队列状态和 Run 记录，
  * 使中断的 Run 能够被恢复执行。
  *
  * 恢复策略：
@@ -35,7 +35,7 @@ export interface RecoveryResult {
 }
 
 /**
- * 恢复协调器依赖
+ * 恢复coordinate器dependency
  */
 export interface RecoveryCoordinatorDeps {
   /** 存储层 */
@@ -53,9 +53,9 @@ export interface RecoveryCoordinatorDeps {
 // ==================== Main Function ====================
 
 /**
- * 执行崩溃恢复
+ * 执行crash恢复
  * @description
- * 在 SW 启动时调用，协调队列状态和 Run 记录。
+ * 在 SW 启动时调用，coordinate队列状态和 Run 记录。
  *
  * 执行顺序：
  * 1. 预清理：检查队列中的所有项，清理已终态或无对应 RunRecord 的残留
@@ -95,7 +95,7 @@ export async function recoverFromCrash(deps: RecoveryCoordinatorDeps): Promise<R
         continue;
       }
 
-      // 清理已终态的 Run（SW 可能在 runner 完成后、scheduler markDone 前崩溃）
+      // 清理已终态的 Run（SW 可能在 runner 完成后、scheduler markDone 前crash）
       if (isTerminalStatus(run.status)) {
         try {
           await deps.storage.queue.markDone(runId, now);

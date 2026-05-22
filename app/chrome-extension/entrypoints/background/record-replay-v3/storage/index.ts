@@ -1,5 +1,5 @@
 /**
- * @fileoverview Storage 层导出入口
+ * @fileoverview Storage 层export入口
  */
 
 export * from './db';

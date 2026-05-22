@@ -1,6 +1,6 @@
 /**
  * @fileoverview 租约管理
- * @description 管理 Run 的租约续约和过期回收
+ * @description 管理 Run 的租约renew和过期回收
  */
 
 import type { UnixMillis } from '../../domain/json';
@@ -9,18 +9,18 @@ import type { RunQueue, RunQueueConfig, Lease } from './queue';
 
 /**
  * 租约管理器
- * @description 管理租约续约和过期检测
+ * @description 管理租约renew和过期检测
  */
 export interface LeaseManager {
   /**
-   * 开始心跳
-   * @param ownerId 持有者 ID
+   * Start heartbeat
+   * @param ownerId Holder ID
    */
   startHeartbeat(ownerId: string): void;
 
   /**
-   * 停止心跳
-   * @param ownerId 持有者 ID
+   * 停止heartbeat
+   * @param ownerId Holder ID
    */
   stopHeartbeat(ownerId: string): void;
 
@@ -42,7 +42,7 @@ export interface LeaseManager {
   createLease(ownerId: string, now: UnixMillis): Lease;
 
   /**
-   * 停止所有心跳
+   * 停止所有heartbeat
    */
   dispose(): void;
 }
@@ -58,7 +58,7 @@ export function createLeaseManager(queue: RunQueue, config: RunQueueConfig): Lea
       // 如果已有定时器，先停止
       this.stopHeartbeat(ownerId);
 
-      // 创建新的心跳定时器
+      // 创建新的heartbeat定时器
       const timer = setInterval(async () => {
         try {
           await queue.heartbeat(ownerId, Date.now());
@@ -106,7 +106,7 @@ export function createLeaseManager(queue: RunQueue, config: RunQueueConfig): Lea
 
 /**
  * 生成唯一的 owner ID
- * @description 用于标识当前 Service Worker 实例
+ * @description 用于identify当前 Service Worker 实例
  */
 export function generateOwnerId(): string {
   return `sw_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;

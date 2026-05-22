@@ -1,12 +1,12 @@
 /**
- * @fileoverview 共享入队服务
+ * @fileoverview shared入队服务
  * @description
- * 提供统一的 Run 入队逻辑，供 RPC Server 和 TriggerManager 共用。
+ * provideunified的 Run 入队逻辑，供 RPC Server 和 TriggerManager 共用。
  *
  * 设计理由：
  * - 将原本位于 RpcServer 的入队逻辑抽离为独立服务
  * - 避免 RPC 和 TriggerManager 之间的行为漂移
- * - 统一参数校验、Run 创建、队列入队、事件发布流程
+ * - unified参数校验、Run 创建、队列入队、事件发布流程
  */
 
 import type { JsonObject, UnixMillis } from '../../domain/json';
@@ -20,7 +20,7 @@ import type { RunScheduler } from './scheduler';
 // ==================== Types ====================
 
 /**
- * 入队服务依赖
+ * 入队服务dependency
  */
 export interface EnqueueRunDeps {
   /** 存储层 (仅需 flows/runs/queue) */

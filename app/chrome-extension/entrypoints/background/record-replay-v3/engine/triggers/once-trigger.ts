@@ -22,7 +22,7 @@ export interface OnceTriggerHandlerDeps {
   logger?: Pick<Console, 'debug' | 'info' | 'warn' | 'error'>;
   /**
    * 可选：自定义禁用触发器的方法
-   * 如果未提供，将直接更新 TriggerStore
+   * 如果未provide，将直接更新 TriggerStore
    */
   disableTrigger?: (triggerId: TriggerId) => Promise<void>;
 }
@@ -109,7 +109,7 @@ export function createOnceTriggerHandler(
   let listening = false;
 
   /**
-   * 递增版本号以使挂起的操作失效
+   * 递增版本号以使pending的操作失效
    */
   function bumpVersion(triggerId: TriggerId): number {
     const next = (versions.get(triggerId) ?? 0) + 1;

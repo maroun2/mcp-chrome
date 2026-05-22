@@ -90,7 +90,7 @@ export interface RpcResponseErr {
 export type RpcResponse = RpcResponseOk | RpcResponseErr;
 
 /**
- * RPC 事件推送
+ * RPC 事件push
  */
 export interface RpcEventMessage {
   type: 'rr_v3.event';
@@ -99,7 +99,7 @@ export interface RpcEventMessage {
 }
 
 /**
- * RPC 订阅确认
+ * RPC 订阅confirm
  */
 export interface RpcSubscribeAck {
   type: 'rr_v3.subscribeAck';

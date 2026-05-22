@@ -78,7 +78,7 @@ export interface ActionError {
 
 export interface TimeoutPolicy {
   ms: Milliseconds;
-  /** 'attempt' = 每次尝试独立计时, 'action' = 整个 action 总计时 */
+  /** 'attempt' = 每次尝试独立计时, 'action' = entire action 总计时 */
   scope?: 'attempt' | 'action';
 }
 
@@ -643,7 +643,7 @@ export interface TriggerParams {
  * 允许外部模块通过声明合并扩展 Action 类型（符合 OCP 原则）
  */
 export interface ActionParamsByType {
-  // UI/构建时
+  // UI/build时
   trigger: TriggerParams;
   delay: DelayParams;
 
@@ -730,7 +730,7 @@ export interface DownloadInfo {
 }
 
 /**
- * Action 输出类型映射（可通过声明合并扩展）
+ * Action 输出类型mapping（可通过声明合并扩展）
  */
 export interface ActionOutputsByType {
   screenshot: { base64Data: string };
@@ -906,7 +906,7 @@ export interface ActionSpec<T extends ActionType = ActionType> {
 }
 
 // ================================
-// 常量导出
+// 常量export
 // ================================
 
 export const ACTION_TYPES: ReadonlyArray<ActionType> = [

@@ -350,7 +350,7 @@ export function createQueueStore(): RunQueue {
          * 扫描并接管孤儿 paused 项
          * @description
          * - 孤儿定义：无租约或 lease.ownerId !== currentOwnerId
-         * - 接管策略：保持 status=paused，更新 lease.ownerId 为新 ownerId，续约 TTL
+         * - 接管策略：保持 status=paused，更新 lease.ownerId 为新 ownerId，renew TTL
          */
         const recoverPausedItems = (): Promise<void> =>
           new Promise<void>((resolve, reject) => {
@@ -373,7 +373,7 @@ export function createQueueStore(): RunQueue {
                 return;
               }
 
-              // 接管：更新 lease 为新 ownerId，续约 TTL
+              // 接管：更新 lease 为新 ownerId，renew TTL
               const updated: RunQueueItem = {
                 ...item,
                 updatedAt: now,

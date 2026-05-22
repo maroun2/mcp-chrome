@@ -3,19 +3,19 @@
  * @description 定义 Record-Replay V3 中使用的各种 ID 类型
  */
 
-/** Flow 唯一标识符 */
+/** Flow 唯一identify符 */
 export type FlowId = string;
 
-/** Node 唯一标识符 */
+/** Node 唯一identify符 */
 export type NodeId = string;
 
-/** Edge 唯一标识符 */
+/** Edge 唯一identify符 */
 export type EdgeId = string;
 
-/** Run 唯一标识符 */
+/** Run 唯一identify符 */
 export type RunId = string;
 
-/** Trigger 唯一标识符 */
+/** Trigger 唯一identify符 */
 export type TriggerId = string;
 
 /** Edge 标签类型 */

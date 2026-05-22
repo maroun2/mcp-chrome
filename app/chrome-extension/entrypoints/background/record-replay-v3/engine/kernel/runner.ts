@@ -100,7 +100,7 @@ export interface RunRunnerFactory {
 }
 
 /**
- * RunRunner 工厂依赖
+ * RunRunner factory dependencies
  */
 export interface RunRunnerFactoryDeps {
   storage: StoragePort;

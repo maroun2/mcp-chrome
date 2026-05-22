@@ -1,6 +1,6 @@
 /**
  * @fileoverview StoragePort 接口定义
- * @description 定义 Storage 层的抽象接口，用于依赖注入
+ * @description 定义 Storage 层的抽象接口，用于dependency注入
  */
 
 import type { FlowId, RunId, TriggerId } from '../../domain/ids';
@@ -92,7 +92,7 @@ export interface TriggersStore {
 
 /**
  * StoragePort 接口
- * @description 聚合所有存储接口，用于依赖注入
+ * @description 聚合所有存储接口，用于dependency注入
  */
 export interface StoragePort {
   /** Flows 存储 */

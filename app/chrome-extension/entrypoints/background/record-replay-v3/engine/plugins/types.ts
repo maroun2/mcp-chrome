@@ -21,7 +21,7 @@ export type Schema<T> = z.ZodType<T, z.ZodTypeDef, unknown>;
 
 /**
  * 节点执行上下文
- * @description 提供给节点执行器的运行时上下文
+ * @description provide给节点执行器的运行时上下文
  */
 export interface NodeExecutionContext {
   /** Run ID */
@@ -54,7 +54,7 @@ export interface NodeExecutionContext {
    * 工件操作
    */
   artifacts: {
-    /** 截取当前页面截图 */
+    /** capture当前页面截图 */
     screenshot: () => Promise<{ ok: true; base64: string } | { ok: false; error: RRError }>;
   };
 
@@ -103,7 +103,7 @@ export interface NodeDefinition<
   TKind extends NodeKind = NodeKind,
   TConfig extends JsonObject = JsonObject,
 > {
-  /** 节点类型标识 */
+  /** 节点类型identify */
   kind: TKind;
   /** 配置校验 Schema */
   schema: Schema<TConfig>;
@@ -149,7 +149,7 @@ export interface TriggerDefinition<
   TKind extends TriggerKind = TriggerKind,
   TConfig extends JsonObject = JsonObject,
 > {
-  /** 触发器类型标识 */
+  /** 触发器类型identify */
   kind: TKind;
   /** 配置校验 Schema */
   schema: Schema<TConfig>;

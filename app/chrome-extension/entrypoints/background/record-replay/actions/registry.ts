@@ -438,7 +438,7 @@ export class ActionRegistry {
   }
 
   /**
-   * 批量注册钩子
+   * batch注册钩子
    */
   use(hooks: ActionRegistryHooks): () => void {
     const disposers: Array<() => void> = [];
@@ -629,7 +629,7 @@ export class ActionRegistry {
 }
 
 // ================================
-// 导出工厂函数
+// export工厂函数
 // ================================
 
 /**

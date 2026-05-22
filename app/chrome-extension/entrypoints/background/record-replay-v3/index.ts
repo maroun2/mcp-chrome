@@ -1,6 +1,6 @@
 /**
  * @fileoverview Record-Replay V3 公共 API 入口
- * @description 导出所有公共类型和接口
+ * @description export所有公共类型和接口
  */
 
 // ==================== Domain ====================

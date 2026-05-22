@@ -158,7 +158,7 @@ export class BreakpointRegistry {
   }
 
   /**
-   * 清空所有
+   * clear所有
    */
   clear(): void {
     this.managers.clear();

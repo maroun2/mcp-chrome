@@ -1,13 +1,13 @@
 /**
  * @fileoverview 触发器处理器接口定义
- * @description 定义各类触发器的统一接口
+ * @description 定义各类触发器的unified接口
  */
 
 import type { TriggerSpec, TriggerKind } from '../../domain/triggers';
 
 /**
  * 触发器处理器接口
- * @description 每种触发器类型需要实现此接口
+ * @description each type of触发器类型需要实现此接口
  */
 export interface TriggerHandler<K extends TriggerKind = TriggerKind> {
   /** 触发器类型 */

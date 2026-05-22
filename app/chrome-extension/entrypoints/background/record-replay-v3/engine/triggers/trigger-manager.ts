@@ -1,10 +1,10 @@
 /**
  * @fileoverview 触发器管理器
  * @description
- * TriggerManager 负责管理所有触发器 Handler 的生命周期：
+ * TriggerManager 负责管理所有触发器 Handler 的lifeperiod：
  * - 从 TriggerStore 加载触发器并安装
  * - 处理触发器触发事件，调用 enqueueRun
- * - 提供防风暴机制 (cooldown + maxQueued)
+ * - provide防风暴机制 (cooldown + maxQueued)
  *
  * 设计理由：
  * - Orchestrator 模式：TriggerManager 不直接实现各类触发器逻辑，而是委托给 per-kind Handler
@@ -24,7 +24,7 @@ import type { TriggerFireCallback, TriggerHandler, TriggerHandlerFactory } from 
 // ==================== Types ====================
 
 /**
- * Handler 工厂映射
+ * Handler factory mapping
  */
 export type TriggerHandlerFactories = Partial<{
   [K in TriggerKind]: TriggerHandlerFactory<K>;
@@ -50,7 +50,7 @@ export interface TriggerManagerStormControl {
 }
 
 /**
- * TriggerManager 依赖
+ * TriggerManager dependencies
  */
 export interface TriggerManagerDeps {
   /** 存储层 */
@@ -59,7 +59,7 @@ export interface TriggerManagerDeps {
   events: Pick<EventsBus, 'append'>;
   /** 调度器 (可选) */
   scheduler?: Pick<RunScheduler, 'kick'>;
-  /** Handler 工厂映射 */
+  /** Handler factory mapping */
   handlerFactories: TriggerHandlerFactories;
   /** 防风暴配置 */
   storm?: TriggerManagerStormControl;
@@ -92,7 +92,7 @@ export interface TriggerManager {
   /** 刷新触发器，重新从存储加载并安装 */
   refresh(): Promise<void>;
   /**
-   * 手动触发一个触发器
+   * manual触发一个触发器
    * @description 仅供 RPC/UI 调用，用于 manual 触发器
    */
   fire(
@@ -191,7 +191,7 @@ export function createTriggerManager(deps: TriggerManagerDeps): TriggerManager {
   /**
    * 处理触发器触发（内部方法）
    * @param throwOnDrop 如果为 true，则在 cooldown/maxQueued 等情况下抛出错误
-   * @returns EnqueueRunResult 或 null（静默丢弃）
+   * @returns EnqueueRunResult 或 null（silentlydiscard）
    */
   async function handleFire(
     triggerId: TriggerId,
@@ -245,7 +245,7 @@ export function createTriggerManager(deps: TriggerManagerDeps): TriggerManager {
       lastFireAt.set(triggerId, t);
     }
 
-    // 构建触发上下文
+    // build触发上下文
     const triggerContext: TriggerFireContext = {
       triggerId: trigger.id,
       kind: trigger.kind,
@@ -272,7 +272,7 @@ export function createTriggerManager(deps: TriggerManagerDeps): TriggerManager {
       );
       return result;
     } catch (e) {
-      // 入队失败时回滚 cooldown 标记
+      // 入队失败时回滚 cooldown mark
       if (cooldownMs > 0) {
         if (prevLastFireAt === undefined) {
           lastFireAt.delete(triggerId);
@@ -292,8 +292,8 @@ export function createTriggerManager(deps: TriggerManagerDeps): TriggerManager {
   }
 
   /**
-   * 手动触发一个触发器（对外暴露）
-   * @description 用于 RPC/UI 调用，会抛出错误而不是静默丢弃
+   * manual触发一个触发器（对外暴露）
+   * @description 用于 RPC/UI 调用，会抛出错误而不是silentlydiscard
    */
   async function fire(
     triggerId: TriggerId,

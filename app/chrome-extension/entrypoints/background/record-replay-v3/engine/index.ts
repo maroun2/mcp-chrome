@@ -1,5 +1,5 @@
 /**
- * @fileoverview Engine 层导出入口
+ * @fileoverview Engine 层export入口
  */
 
 // Kernel

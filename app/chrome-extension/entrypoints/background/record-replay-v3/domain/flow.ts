@@ -16,7 +16,7 @@ export const FLOW_SCHEMA_VERSION = 3 as const;
  * @description DAG 中的边，连接两个节点
  */
 export interface EdgeV3 {
-  /** Edge 唯一标识符 */
+  /** Edge 唯一identify符 */
   id: EdgeId;
   /** 源节点 ID */
   from: NodeId;
@@ -34,7 +34,7 @@ export type NodeKind = string;
  * @description DAG 中的节点，代表一个可执行的操作
  */
 export interface NodeV3 {
-  /** Node 唯一标识符 */
+  /** Node 唯一identify符 */
   id: NodeId;
   /** 节点类型 */
   kind: NodeKind;
@@ -66,7 +66,7 @@ export interface FlowBinding {
 export interface FlowV3 {
   /** Schema 版本 */
   schemaVersion: typeof FLOW_SCHEMA_VERSION;
-  /** Flow 唯一标识符 */
+  /** Flow 唯一identify符 */
   id: FlowId;
   /** Flow 名称 */
   name: string;
@@ -77,7 +77,7 @@ export interface FlowV3 {
   /** 更新时间 */
   updatedAt: ISODateTimeString;
 
-  /** 入口节点 ID（显式指定，不依赖入度推断） */
+  /** 入口节点 ID（显式指定，不dependency入度推断） */
   entryNodeId: NodeId;
   /** 节点列表 */
   nodes: NodeV3[];
@@ -98,21 +98,21 @@ export interface FlowV3 {
 }
 
 /**
- * 根据 ID 查找节点
+ * 根据 ID find节点
  */
 export function findNodeById(flow: FlowV3, nodeId: NodeId): NodeV3 | undefined {
   return flow.nodes.find((n) => n.id === nodeId);
 }
 
 /**
- * 查找从指定节点出发的所有边
+ * find从指定节点出发的所有边
  */
 export function findEdgesFrom(flow: FlowV3, nodeId: NodeId): EdgeV3[] {
   return flow.edges.filter((e) => e.from === nodeId);
 }
 
 /**
- * 查找指向指定节点的所有边
+ * find指向指定节点的所有边
  */
 export function findEdgesTo(flow: FlowV3, nodeId: NodeId): EdgeV3[] {
   return flow.edges.filter((e) => e.to === nodeId);

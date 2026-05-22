@@ -117,7 +117,7 @@ export class PluginRegistry implements PluginRegistrationContext {
   }
 
   /**
-   * 批量注册插件
+   * batch注册插件
    */
   registerPlugins(plugins: RRPlugin[]): void {
     for (const plugin of plugins) {
@@ -126,7 +126,7 @@ export class PluginRegistry implements PluginRegistrationContext {
   }
 
   /**
-   * 清空所有注册
+   * clear所有注册
    * @description 主要用于测试
    */
   clear(): void {

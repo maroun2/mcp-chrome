@@ -45,7 +45,7 @@ export interface UrlMatchRule {
  * 触发器规范联合类型
  */
 export type TriggerSpec =
-  // 手动触发
+  // manual触发
   | (TriggerSpecBase & { kind: 'manual' })
 
   // URL 触发

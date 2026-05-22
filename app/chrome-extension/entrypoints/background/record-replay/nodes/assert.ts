@@ -11,7 +11,7 @@ export const assertNode: NodeRuntime<StepAssert> = {
     if (ok && s.assert && 'attribute' in s.assert) {
       const a = s.assert.attribute || {};
       if (!a.selector || !a.name)
-        return { ok: false, errors: ['assert.attribute: 需提供 selector 与 name'] };
+        return { ok: false, errors: ['assert.attribute: 需provide selector 与 name'] };
     }
     return ok ? { ok } : { ok, errors: ['缺少断言条件'] };
   },

@@ -1,6 +1,6 @@
 /**
- * @fileoverview Domain 层导出入口
- * @description 导出所有 Domain 类型定义
+ * @fileoverview Domain 层export入口
+ * @description export所有 Domain 类型定义
  */
 
 // JSON 基础类型
