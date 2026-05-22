@@ -179,6 +179,7 @@ async function approve(id: string) {
   pendingApprovals.delete(id);
   addHistory({ id, name: pending.name, status: 'approved', timestamp: Date.now() });
   broadcastState();
+  send({ type: 'approved', id });
   await executeAndRespond(id, pending.name, pending.args);
   return !!approval;
 }

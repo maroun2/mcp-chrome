@@ -1,11 +1,4 @@
-const COMPUTER_WRITE_ACTIONS = new Set([
-  'type',
-  'fill_form',
-  'key',
-  'scroll',
-  'scroll_to',
-  'hover',
-]);
+const COMPUTER_READ_ACTIONS = new Set(['screenshot', 'wait']);
 
 const WRITE_TOOLS = new Set([
   'chrome_click_element',
@@ -25,7 +18,8 @@ export function requiresApproval(name: string, args: any): boolean {
   }
 
   if (name === 'chrome_computer') {
-    return COMPUTER_WRITE_ACTIONS.has(String(args?.action || '').toLowerCase());
+    const action = String(args?.action || '').toLowerCase();
+    return !COMPUTER_READ_ACTIONS.has(action);
   }
 
   return false;

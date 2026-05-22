@@ -119,8 +119,16 @@ const handleToolCall = async (name: string, args: any): Promise<CallToolResult> 
         };
       }
     }
+    const approvalRequired = requiresApproval(name, args);
+    if (approvalRequired && !bridgeWsManager.hasClient()) {
+      return {
+        content: [{ type: 'text', text: 'No approval channel connected' }],
+        isError: true,
+      };
+    }
+
     const response = bridgeWsManager.hasClient()
-      ? await bridgeWsManager.callTool(name, args, requiresApproval(name, args))
+      ? await bridgeWsManager.callTool(name, args, approvalRequired)
       : await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
           {
             name,

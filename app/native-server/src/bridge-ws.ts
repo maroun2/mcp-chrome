@@ -18,6 +18,7 @@ interface PendingRequest {
   resolve: (value: BrowserToolResponse) => void;
   reject: (reason?: unknown) => void;
   timeoutId: NodeJS.Timeout;
+  awaitingApproval: boolean;
 }
 
 export class BridgeWebSocketManager {
@@ -91,7 +92,7 @@ export class BridgeWebSocketManager {
         reject(new Error(requiresApproval ? 'Approval timeout' : 'Request timed out'));
       }, timeoutMs);
 
-      this.pending.set(id, { resolve, reject, timeoutId });
+      this.pending.set(id, { resolve, reject, timeoutId, awaitingApproval: requiresApproval });
       const type = requiresApproval ? 'approval_request' : 'call_tool';
       client.send(JSON.stringify({ type, id, name, args, timeoutMs }));
     });
@@ -102,6 +103,18 @@ export class BridgeWebSocketManager {
     if (!id) return;
     const pending = this.pending.get(id);
     if (!pending) return;
+
+    if (message.type === 'approved') {
+      if (pending.awaitingApproval) {
+        clearTimeout(pending.timeoutId);
+        pending.awaitingApproval = false;
+        pending.timeoutId = setTimeout(() => {
+          this.pending.delete(id);
+          pending.reject(new Error('Request timed out'));
+        }, DEFAULT_TOOL_TIMEOUT_MS);
+      }
+      return;
+    }
 
     if (message.type === 'denied') {
       this.finish(id, () => pending.reject(new Error('Action denied by user')));
