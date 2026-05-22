@@ -22,6 +22,11 @@ export const BACKGROUND_MESSAGE_TYPES = {
   GET_SERVER_STATUS: 'get_server_status',
   REFRESH_SERVER_STATUS: 'refresh_server_status',
   SERVER_STATUS_CHANGED: 'server_status_changed',
+  BRIDGE_STATUS_CHANGED: 'bridge_status_changed',
+  GET_BRIDGE_STATUS: 'get_bridge_status',
+  BRIDGE_APPROVALS_CHANGED: 'bridge_approvals_changed',
+  BRIDGE_APPROVE_ACTION: 'bridge_approve_action',
+  BRIDGE_DENY_ACTION: 'bridge_deny_action',
   INITIALIZE_SEMANTIC_ENGINE: 'initialize_semantic_engine',
   // Record & Replay background control and queries
   RR_START_RECORDING: 'rr_start_recording',

@@ -5,6 +5,8 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import nativeMessagingHostInstance from '../native-messaging-host';
+import { bridgeWsManager } from '../bridge-ws';
+import { requiresApproval } from './tool-approval';
 import { NativeMessageType, TOOL_SCHEMAS } from 'chrome-mcp-shared';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
@@ -117,15 +119,16 @@ const handleToolCall = async (name: string, args: any): Promise<CallToolResult> 
         };
       }
     }
-    // 发送请求到Chrome扩展并等待响应
-    const response = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
-      {
-        name,
-        args,
-      },
-      NativeMessageType.CALL_TOOL,
-      120000, // 延长到 120 秒，避免性能分析等长任务超时
-    );
+    const response = bridgeWsManager.hasClient()
+      ? await bridgeWsManager.callTool(name, args, requiresApproval(name, args))
+      : await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
+          {
+            name,
+            args,
+          },
+          NativeMessageType.CALL_TOOL,
+          120000, // 延长到 120 秒，避免性能分析等长任务超时
+        );
     if (response.status === 'success') {
       return response.data;
     } else {

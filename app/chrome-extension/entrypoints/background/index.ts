@@ -10,6 +10,7 @@ import { initElementMarkerListeners } from './element-marker';
 import { initWebEditorListeners } from './web-editor';
 import { initQuickPanelAgentHandler } from './quick-panel/agent-handler';
 import { initQuickPanelCommands } from './quick-panel/commands';
+import { initBridgeWebSocket } from './bridge-ws';
 import { initQuickPanelTabsHandler } from './quick-panel/tabs-handler';
 
 // Record-Replay V3 (feature flag)
@@ -38,6 +39,7 @@ export default defineBackground(() => {
 
   // Initialize core services
   initNativeHostListener();
+  initBridgeWebSocket();
   initSemanticSimilarityListener();
   initStorageManagerListener();
   // Record & Replay V1/V2 listeners
