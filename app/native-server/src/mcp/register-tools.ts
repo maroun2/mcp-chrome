@@ -15,7 +15,7 @@ async function listDynamicFlowTools(): Promise<Tool[]> {
     const response = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
       {},
       'rr_list_published_flows',
-      20000,
+      500,
     );
     if (response && response.status === 'success' && Array.isArray(response.items)) {
       const tools: Tool[] = [];
