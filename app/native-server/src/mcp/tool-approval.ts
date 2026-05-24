@@ -9,7 +9,11 @@ const WRITE_TOOLS = new Set([
   'chrome_handle_dialog',
 ]);
 
+// Read-only tools — never require approval
+const READ_TOOLS = new Set(['chrome_find', 'chrome_resize_window', 'chrome_update_plan']);
+
 export function requiresApproval(name: string, args: any): boolean {
+  if (READ_TOOLS.has(name)) return false;
   if (WRITE_TOOLS.has(name)) return true;
 
   if (name === 'chrome_navigate') {

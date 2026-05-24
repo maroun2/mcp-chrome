@@ -39,6 +39,9 @@ export const TOOL_NAMES = {
     PERFORMANCE_STOP_TRACE: 'performance_stop_trace',
     PERFORMANCE_ANALYZE_INSIGHT: 'performance_analyze_insight',
     GIF_RECORDER: 'chrome_gif_recorder',
+    FIND: 'chrome_find',
+    RESIZE_WINDOW: 'chrome_resize_window',
+    UPDATE_PLAN: 'chrome_update_plan',
   },
   RECORD_REPLAY: {
     FLOW_RUN: 'record_replay_flow_run',
@@ -49,7 +52,8 @@ export const TOOL_NAMES = {
 export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.GET_WINDOWS_AND_TABS,
-    description: 'Get all currently open browser windows and tabs',
+    description:
+      'Get all currently open browser windows and tabs. CRITICAL: Call this first before any browser automation sequence to know which tabs exist, their IDs, URLs, and which tab is active in each window.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -160,7 +164,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.READ_PAGE,
     description:
-      'Get an accessibility tree representation of visible elements on the page. Only returns elements that are visible in the viewport. Optionally filter for only interactive elements.\nTip: If the returned elements do not include the specific element you need, use the computer tool\'s screenshot (action="screenshot") to capture the element\'s on-screen coordinates, then operate by coordinates.',
+      'Get an accessibility tree of visible elements on the page with element refs. Use refs with chrome_click_element, chrome_fill_or_select, or chrome_computer. Call this after every action to verify the action took effect. Tip: If the needed element is missing, use chrome_find to search by natural language, or use chrome_computer (screenshot) to see coordinates.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -397,7 +401,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.NAVIGATE,
     description:
-      'Navigate to a URL, refresh the current tab, or navigate browser history (back/forward)',
+      'Navigate to a URL, refresh the current tab, or navigate browser history (back/forward). After navigating, call chrome_read_page or chrome_computer (screenshot) to verify the page loaded correctly before proceeding.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1395,6 +1399,78 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
       },
       required: ['action'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.FIND,
+    description:
+      'Find elements on the page by natural language query (e.g. "search bar", "login button", "price"). Returns up to 20 matching elements with refs and coordinates. Use refs directly with chrome_click_element or chrome_fill_or_select. Faster than reading the full accessibility tree when you know what you\'re looking for.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description:
+            'Natural language description of the element(s) to find (e.g. "submit button", "email input", "navigation menu").',
+        },
+        tabId: {
+          type: 'number',
+          description: 'Target tab ID (default: active tab).',
+        },
+        windowId: {
+          type: 'number',
+          description: 'Target window ID to pick active tab when tabId is omitted.',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.RESIZE_WINDOW,
+    description: 'Resize the browser window to the specified width and height in pixels.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        width: {
+          type: 'number',
+          description: 'Target window width in pixels (e.g. 1280).',
+        },
+        height: {
+          type: 'number',
+          description: 'Target window height in pixels (e.g. 800).',
+        },
+        tabId: {
+          type: 'number',
+          description: "Tab ID to identify which window to resize (default: active tab's window).",
+        },
+        windowId: {
+          type: 'number',
+          description: 'Window ID to resize directly (alternative to tabId).',
+        },
+      },
+      required: ['width', 'height'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.UPDATE_PLAN,
+    description:
+      'Present a plan to the user before taking browser actions. Show which domains you will visit and what you intend to do. Call this at the start of multi-step browser tasks so the user understands the scope. Returns immediately (auto-approved).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        domains: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'List of domains you will visit (e.g. ["github.com", "stackoverflow.com"]).',
+        },
+        approach: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'High-level steps describing what you will do. Keep concise, 3-7 items (e.g. ["Navigate to login page", "Fill credentials", "Submit form"]).',
+        },
+      },
+      required: ['domains', 'approach'],
     },
   },
 ];
