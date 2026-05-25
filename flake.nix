@@ -2,7 +2,7 @@
   description = "mcp-chrome bridge — VPS-hostable Chrome MCP bridge server";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -19,42 +19,110 @@
           version = "1.0.29";
           src = ./.;
 
-          nativeBuildInputs = [ nodejs pnpm pkgs.makeWrapper ];
+          nativeBuildInputs = [
+            nodejs
+            pnpm
+            pnpm.configHook       # runs pnpm install --offline --ignore-scripts
+            pkgs.makeWrapper
+            pkgs.python3          # required by node-gyp
+            pkgs.pkg-config
+            pkgs.nodePackages.node-gyp   # compile better-sqlite3
+          ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
+            pkgs.stdenv.cc        # C++ compiler for better-sqlite3
+          ];
 
           pnpmDeps = pnpm.fetchDeps {
             inherit (finalAttrs) pname version src;
             # To update: run `nix build 2>&1 | grep "got:"` and paste the hash here
-            hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+            hash = "sha256-j05kL2XgWWVfeD0+BXaTHDSUq144GDuWO8HE9ywbaZc=";
           };
 
-          configurePhase = ''
-            runHook preConfigure
-            export HOME="$(mktemp -d)"
-            pnpm config set store-dir "${finalAttrs.pnpmDeps}"
-            pnpm install --frozen-lockfile --offline
-            runHook postConfigure
-          '';
-
+          # configHook handles: store-dir, pnpm install --offline --ignore-scripts
+          # We still need to compile native modules (better-sqlite3) separately.
+          # Use node-gyp directly to avoid pnpm's workspace network resolution.
           buildPhase = ''
             runHook preBuild
+
+            _bs3=$(find node_modules/.pnpm -maxdepth 4 -name "binding.gyp" \
+                   -path "*/better-sqlite3*" 2>/dev/null | head -1 | xargs -r dirname)
+            if [ -n "$_bs3" ]; then
+              echo "Compiling better-sqlite3 at $_bs3"
+              pushd "$_bs3"
+              HOME="$TMPDIR" node-gyp rebuild \
+                --nodedir="${nodejs}" \
+                --python="${pkgs.python3}/bin/python3"
+              popd
+            fi
+
             pnpm --filter chrome-mcp-shared build
             pnpm --filter mcp-chrome-bridge build
+
             runHook postBuild
           '';
 
           installPhase = ''
             runHook preInstall
 
-            # pnpm deploy produces a clean production closure:
-            # - no devDependencies
-            # - workspace packages (chrome-mcp-shared) copied in, not symlinked
-            mkdir -p "$out/lib"
-            pnpm --filter mcp-chrome-bridge deploy --prod "$out/lib/mcp-chrome-bridge"
+            local lib="$out/lib/mcp-chrome-bridge"
+            mkdir -p "$lib/node_modules"
+
+            # Compiled server
+            cp -r app/native-server/dist "$lib/dist"
+
+            # Virtual store (actual package files + relative internal symlinks).
+            # cp -r preserves the internal relative symlinks so they still resolve.
+            cp -r node_modules/.pnpm "$lib/node_modules/.pnpm"
+
+            # Recreate the bridge server's top-level package symlinks.
+            # In app/native-server/node_modules/:
+            #   PKG      -> ../../../node_modules/.pnpm/PKG@V/…/PKG
+            #   @sc/PKG  -> ../../../../node_modules/.pnpm/@sc+PKG@V/…/@sc/PKG
+            # New paths relative to $lib/node_modules/:
+            #   PKG      -> .pnpm/PKG@V/…/PKG           (strip 3-level ../../../node_modules/)
+            #   @sc/PKG  -> ../.pnpm/@sc+PKG@V/…/@sc/PKG (strip 4-level ../../../../node_modules/, add ../)
+            for entry in app/native-server/node_modules/*/; do
+              name=$(basename "$entry")
+              case "$name" in .*) continue ;; esac      # skip .bin, .modules.yaml …
+              if [ -L "app/native-server/node_modules/$name" ]; then
+                target=$(readlink "app/native-server/node_modules/$name")
+                new="''${target#*node_modules/}"        # strip up to first node_modules/
+                ln -sf "$new" "$lib/node_modules/$name"
+              fi
+            done
+
+            for scope_dir in app/native-server/node_modules/@*/; do
+              scope=$(basename "$scope_dir")
+              mkdir -p "$lib/node_modules/$scope"
+              for entry in "$scope_dir"*/; do
+                name=$(basename "$entry")
+                if [ -L "$scope_dir$name" ]; then
+                  target=$(readlink "$scope_dir$name")
+                  new="../''${target#*node_modules/}"   # one extra ../ for the @scope/ level
+                  ln -sf "$new" "$lib/node_modules/$scope/$name"
+                fi
+              done
+            done
+
+            # chrome-mcp-shared is a workspace dep (symlink to ../../../packages/shared).
+            # Replace with the actual built dist so it works outside the monorepo.
+            rm -f "$lib/node_modules/chrome-mcp-shared"
+            mkdir -p "$lib/node_modules/chrome-mcp-shared"
+            cp -r packages/shared/dist  "$lib/node_modules/chrome-mcp-shared/dist"
+            cp packages/shared/package.json "$lib/node_modules/chrome-mcp-shared/package.json"
+
+            # Mirror the replacement into the virtual store entries as well.
+            while IFS= read -r lnk; do
+              rm "$lnk"
+              mkdir -p "$lnk"
+              cp -r packages/shared/dist  "$lnk/dist"
+              cp packages/shared/package.json "$lnk/package.json"
+            done < <(find "$lib/node_modules/.pnpm" -maxdepth 4 \
+                          -name "chrome-mcp-shared" -type l 2>/dev/null)
 
             mkdir -p "$out/bin"
             makeWrapper "${nodejs}/bin/node" "$out/bin/mcp-chrome-bridge" \
-              --add-flags "$out/lib/mcp-chrome-bridge/dist/index.js" \
-              --chdir "$out/lib/mcp-chrome-bridge"
+              --add-flags "$lib/dist/index.js" \
+              --chdir "$lib"
 
             runHook postInstall
           '';
