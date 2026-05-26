@@ -475,16 +475,16 @@ export const TOOL_SCHEMAS: Tool[] = [
         storeBase64: {
           type: 'boolean',
           description:
-            'return screenshot in base64 format (default: false) if you want to see the page, recommend set this to be true',
+            'Return screenshot as inline base64 (default: true). Always use this when running via a remote bridge — the saved-file path is on the user machine and not accessible to the agent.',
         },
         fullPage: {
           type: 'boolean',
-          description: 'Store screenshot of the entire page (default: true)',
+          description: 'Capture the entire page by scrolling (default: false)',
         },
         savePng: {
           type: 'boolean',
           description:
-            'Save screenshot as PNG file (default: true)，if you want to see the page, recommend set this to be false, and set storeBase64 to be true',
+            'Save screenshot as a PNG file to Chrome Downloads (default: false). Only useful when the agent runs on the same machine as Chrome. When using a remote bridge set this to false and use storeBase64 instead.',
         },
       },
       required: [],
