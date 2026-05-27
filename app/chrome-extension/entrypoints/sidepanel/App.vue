@@ -109,7 +109,7 @@ const bridgeState = ref<{
   trustedDomains: [],
 });
 
-const settings = ref({
+const settings = ref<{ serverUrl: string; token: string; autoConnect: boolean }>({
   serverUrl: BRIDGE_SERVER.DEFAULT_URL,
   token: '',
   autoConnect: true,

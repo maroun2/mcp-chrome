@@ -56,10 +56,6 @@ export default defineConfig({
       'sidePanel',
     ],
     host_permissions: ['<all_urls>'],
-    options_ui: {
-      page: 'options.html',
-      open_in_tab: true,
-    },
     action: {
       default_title: 'Chrome MCP Server',
     },
