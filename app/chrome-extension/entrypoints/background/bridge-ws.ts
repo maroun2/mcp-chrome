@@ -17,7 +17,7 @@ export interface ApprovalRequest {
 export interface ActionHistoryItem {
   id: string;
   name: string;
-  status: 'approved' | 'auto-approved' | 'denied' | 'completed' | 'failed' | 'timeout';
+  status: 'approved' | 'denied' | 'completed' | 'failed' | 'timeout';
   timestamp: number;
 }
 
@@ -25,35 +25,18 @@ let ws: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let bridgeUrl: string = BRIDGE_SERVER.DEFAULT_URL;
 let bridgeToken = '';
-let autoConnect = true;
 const pendingApprovals = new Map<string, ApprovalRequest>();
 const pendingPayloads = new Map<string, { name: string; args: any }>();
 const history: ActionHistoryItem[] = [];
-const trustedDomains = new Set<string>();
 let connected = false;
 
 async function loadSettings() {
   const values = await chrome.storage.sync.get([
     STORAGE_KEYS.BRIDGE_SERVER_URL,
     STORAGE_KEYS.BRIDGE_TOKEN,
-    STORAGE_KEYS.BRIDGE_AUTO_CONNECT,
-    STORAGE_KEYS.TRUSTED_DOMAINS,
   ]);
   bridgeUrl = String(values[STORAGE_KEYS.BRIDGE_SERVER_URL] || BRIDGE_SERVER.DEFAULT_URL);
   bridgeToken = String(values[STORAGE_KEYS.BRIDGE_TOKEN] || '');
-  autoConnect = values[STORAGE_KEYS.BRIDGE_AUTO_CONNECT] !== false;
-
-  trustedDomains.clear();
-  const stored = values[STORAGE_KEYS.TRUSTED_DOMAINS];
-  if (Array.isArray(stored)) {
-    for (const d of stored) trustedDomains.add(String(d));
-  }
-}
-
-async function saveTrustedDomains() {
-  await chrome.storage.sync.set({
-    [STORAGE_KEYS.TRUSTED_DOMAINS]: Array.from(trustedDomains),
-  });
 }
 
 function broadcastState() {
@@ -80,7 +63,6 @@ function getBridgeState() {
     serverUrl: bridgeUrl,
     pending: Array.from(pendingApprovals.values()),
     history: [...history],
-    trustedDomains: Array.from(trustedDomains),
   };
 }
 
@@ -109,7 +91,7 @@ function scheduleReconnect() {
 
 async function connectBridge() {
   await loadSettings();
-  if (!autoConnect || !bridgeToken || !bridgeUrl) {
+  if (!bridgeToken || !bridgeUrl) {
     connected = false;
     broadcastStatus();
     return;
@@ -152,36 +134,13 @@ async function handleBridgeMessage(raw: unknown) {
 
   if (message.type === 'approval_request') {
     const id = String(message.id);
-    const currentUrl = await getCurrentPageUrl();
-
-    // Check if this page's hostname is trusted — auto-approve silently
-    let hostname = '';
-    try {
-      hostname = new URL(currentUrl).hostname;
-    } catch {}
-
-    if (hostname && trustedDomains.has(hostname)) {
-      pendingPayloads.set(id, { name: message.name, args: message.args });
-      send({ type: 'approved', id });
-      await executeAndRespond(id, message.name, message.args);
-      addHistory({
-        id,
-        name: String(message.name),
-        status: 'auto-approved',
-        timestamp: Date.now(),
-      });
-      pendingPayloads.delete(id);
-      return;
-    }
-
-    // Normal approval flow — show card in side panel
     pendingPayloads.set(id, { name: message.name, args: message.args });
     const now = Date.now();
     pendingApprovals.set(id, {
       id,
       name: String(message.name),
       args: message.args,
-      currentUrl,
+      currentUrl: await getCurrentPageUrl(),
       createdAt: now,
       expiresAt: now + 60_000,
     });
@@ -218,18 +177,6 @@ async function approve(id: string) {
   if (!pending) return false;
   pendingPayloads.delete(id);
   pendingApprovals.delete(id);
-
-  // Remember the domain as trusted
-  if (approval?.currentUrl) {
-    try {
-      const hostname = new URL(approval.currentUrl).hostname;
-      if (hostname) {
-        trustedDomains.add(hostname);
-        await saveTrustedDomains();
-      }
-    } catch {}
-  }
-
   addHistory({ id, name: pending.name, status: 'approved', timestamp: Date.now() });
   broadcastState();
   send({ type: 'approved', id });
@@ -237,33 +184,14 @@ async function approve(id: string) {
   return !!approval;
 }
 
-async function deny(id: string) {
+function deny(id: string) {
   const pending = pendingPayloads.get(id);
-  const approval = pendingApprovals.get(id);
   pendingPayloads.delete(id);
   pendingApprovals.delete(id);
-
-  // Remove from trusted domains if present (deny revokes trust)
-  if (approval?.currentUrl) {
-    try {
-      const hostname = new URL(approval.currentUrl).hostname;
-      if (hostname && trustedDomains.has(hostname)) {
-        trustedDomains.delete(hostname);
-        await saveTrustedDomains();
-      }
-    } catch {}
-  }
-
   send({ type: 'denied', id });
   addHistory({ id, name: pending?.name || 'unknown', status: 'denied', timestamp: Date.now() });
   broadcastState();
   return !!pending;
-}
-
-async function removeTrustedDomain(domain: string) {
-  trustedDomains.delete(domain);
-  await saveTrustedDomains();
-  broadcastState();
 }
 
 function expireApprovals() {
@@ -283,11 +211,7 @@ export function initBridgeWebSocket() {
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'sync') return;
-    const bridgeKeyChanged =
-      changes[STORAGE_KEYS.BRIDGE_SERVER_URL] ||
-      changes[STORAGE_KEYS.BRIDGE_TOKEN] ||
-      changes[STORAGE_KEYS.BRIDGE_AUTO_CONNECT];
-    if (!bridgeKeyChanged) return;
+    if (!changes[STORAGE_KEYS.BRIDGE_SERVER_URL] && !changes[STORAGE_KEYS.BRIDGE_TOKEN]) return;
     try {
       ws?.close();
     } catch {}
@@ -305,20 +229,7 @@ export function initBridgeWebSocket() {
       return true;
     }
     if (message?.type === BACKGROUND_MESSAGE_TYPES.BRIDGE_DENY_ACTION) {
-      deny(String(message.id)).then((ok) => sendResponse({ success: ok }));
-      return true;
-    }
-    if (message?.type === BACKGROUND_MESSAGE_TYPES.BRIDGE_RECONNECT) {
-      try {
-        ws?.close();
-      } catch {}
-      ws = null;
-      connectBridge().catch(() => scheduleReconnect());
-      sendResponse({ success: true });
-      return true;
-    }
-    if (message?.type === BACKGROUND_MESSAGE_TYPES.BRIDGE_REMOVE_TRUSTED_DOMAIN) {
-      removeTrustedDomain(String(message.domain)).then(() => sendResponse({ success: true }));
+      sendResponse({ success: deny(String(message.id)) });
       return true;
     }
     return false;
