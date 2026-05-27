@@ -227,6 +227,8 @@ export const STORAGE_KEYS = {
   NATIVE_SERVER_PORT: 'nativeServerPort',
   BRIDGE_SERVER_URL: 'bridgeServerUrl',
   BRIDGE_TOKEN: 'bridgeToken',
+  BRIDGE_AUTO_CONNECT: 'bridgeAutoConnect',
+  TRUSTED_DOMAINS: 'trustedDomains',
   NATIVE_AUTO_CONNECT_ENABLED: 'nativeAutoConnectEnabled',
   SEMANTIC_MODEL: 'selectedModel',
   USER_PREFERENCES: 'userPreferences',
