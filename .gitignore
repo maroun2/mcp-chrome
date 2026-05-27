@@ -47,3 +47,7 @@ CLAUDE.md
 
 .docs/
 .claude/
+
+# Generated release archives
+releases/*.tar.gz
+releases/*.zip

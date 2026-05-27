@@ -28,6 +28,7 @@ export const BACKGROUND_MESSAGE_TYPES = {
   BRIDGE_APPROVE_ACTION: 'bridge_approve_action',
   BRIDGE_DENY_ACTION: 'bridge_deny_action',
   BRIDGE_RECONNECT: 'bridge_reconnect',
+  BRIDGE_REMOVE_TRUSTED_DOMAIN: 'bridge_remove_trusted_domain',
   INITIALIZE_SEMANTIC_ENGINE: 'initialize_semantic_engine',
   // Record & Replay background control and queries
   RR_START_RECORDING: 'rr_start_recording',
