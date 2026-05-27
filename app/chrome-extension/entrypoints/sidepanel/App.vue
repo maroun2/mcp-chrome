@@ -7,6 +7,7 @@
         ></span>
         <span>{{ bridgeState.connected ? 'Connected' : 'Disconnected' }}</span>
         <span class="bridge-url">{{ bridgeState.serverUrl }}</span>
+        <button class="bridge-reconnect" @click="reconnectBridge" title="Reconnect">↺</button>
       </div>
 
       <div v-for="approval in bridgeState.pending" :key="approval.id" class="approval-card">
@@ -392,6 +393,10 @@ async function approveBridgeAction(id: string) {
 
 async function denyBridgeAction(id: string) {
   await chrome.runtime.sendMessage({ type: BACKGROUND_MESSAGE_TYPES.BRIDGE_DENY_ACTION, id });
+}
+
+async function reconnectBridge() {
+  await chrome.runtime.sendMessage({ type: BACKGROUND_MESSAGE_TYPES.BRIDGE_RECONNECT });
 }
 
 async function loadBridgeState() {
@@ -912,6 +917,20 @@ onUnmounted(() => {
 
 .bridge-dot-bad {
   background: #ef4444;
+}
+
+.bridge-reconnect {
+  margin-left: auto;
+  background: #e2e8f0;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.bridge-reconnect:hover {
+  background: #cbd5e1;
 }
 
 .bridge-url,

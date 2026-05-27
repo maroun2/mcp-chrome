@@ -232,6 +232,15 @@ export function initBridgeWebSocket() {
       sendResponse({ success: deny(String(message.id)) });
       return true;
     }
+    if (message?.type === BACKGROUND_MESSAGE_TYPES.BRIDGE_RECONNECT) {
+      try {
+        ws?.close();
+      } catch {}
+      ws = null;
+      connectBridge().catch(() => scheduleReconnect());
+      sendResponse({ success: true });
+      return true;
+    }
     return false;
   });
 }
