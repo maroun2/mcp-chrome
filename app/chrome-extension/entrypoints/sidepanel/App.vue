@@ -2,9 +2,22 @@
   <div class="panel">
     <!-- Status bar -->
     <div class="status-bar">
-      <span :class="['dot', bridgeState.connected ? 'dot-ok' : 'dot-bad']"></span>
-      <span class="status-label">{{ bridgeState.connected ? 'Connected' : 'Disconnected' }}</span>
+      <span
+        :class="[
+          'dot',
+          bridgeState.connected ? (bridgeState.paused ? 'dot-pause' : 'dot-ok') : 'dot-bad',
+        ]"
+      ></span>
+      <span class="status-label">{{
+        bridgeState.connected ? (bridgeState.paused ? 'Paused' : 'Connected') : 'Disconnected'
+      }}</span>
       <span class="server-url" :title="bridgeState.serverUrl">{{ bridgeState.serverUrl }}</span>
+      <button
+        :class="['btn-pause', bridgeState.paused ? 'btn-pause--resume' : '']"
+        @click="togglePause"
+      >
+        {{ bridgeState.paused ? '▶ Resume' : '⏸ Pause' }}
+      </button>
       <button class="btn-reconnect" @click="reconnect">Reconnect</button>
     </div>
 
@@ -14,6 +27,7 @@
         <strong class="tool-name">{{ approval.name }}</strong>
         <span class="countdown">{{ countdown(approval.expiresAt) }}s</span>
       </div>
+      <div class="approval-desc">{{ describe(approval.name, approval.args) }}</div>
       <div class="approval-url">{{ approval.currentUrl || 'Unknown page' }}</div>
       <pre class="approval-args">{{ pretty(approval.args) }}</pre>
       <div class="approval-actions">
@@ -86,6 +100,7 @@ const savedMsg = ref('');
 
 const bridgeState = ref<{
   connected: boolean;
+  paused: boolean;
   serverUrl: string;
   pending: Array<{
     id: string;
@@ -103,6 +118,7 @@ const bridgeState = ref<{
   trustedDomains: string[];
 }>({
   connected: false,
+  paused: false,
   serverUrl: '',
   pending: [],
   history: [],
@@ -123,6 +139,74 @@ function pretty(value: any) {
   }
 }
 
+const TOOL_LABELS: Record<string, string> = {
+  chrome_click_element: 'Click element',
+  chrome_fill_or_select: 'Fill / select field',
+  chrome_keyboard: 'Keyboard input',
+  chrome_javascript: 'Execute JavaScript',
+  chrome_navigate: 'Navigate browser',
+  chrome_close_tabs: 'Close tab(s)',
+  chrome_handle_dialog: 'Handle dialog',
+  chrome_computer: 'Mouse / keyboard action',
+  chrome_screenshot: 'Take screenshot',
+  chrome_read_page: 'Read page accessibility tree',
+  chrome_network_request: 'Send network request',
+  chrome_upload_file: 'Upload file',
+  chrome_find: 'Find element',
+  chrome_switch_tab: 'Switch tab',
+  chrome_get_web_content: 'Fetch web content',
+};
+
+function describe(name: string, args: any): string {
+  switch (name) {
+    case 'chrome_navigate': {
+      if (args?.refresh) return 'Refresh current page';
+      if (args?.direction) return `Navigate ${args.direction}`;
+      const url = String(args?.url || '');
+      return url ? (url.length > 70 ? url.slice(0, 70) + '…' : url) : 'Navigate to URL';
+    }
+    case 'chrome_click_element': {
+      const target = args?.ref || args?.selector || args?.description || '';
+      return target ? `Click: ${String(target).slice(0, 60)}` : 'Click element';
+    }
+    case 'chrome_fill_or_select': {
+      const val = String(args?.value ?? '');
+      const target = args?.ref || args?.selector || 'field';
+      return `Fill "${val.slice(0, 40)}"  →  ${String(target).slice(0, 40)}`;
+    }
+    case 'chrome_keyboard': {
+      const keys = args?.key;
+      if (Array.isArray(keys)) return `Press: ${keys.join(' + ')}`;
+      return keys ? `Press: ${String(keys).slice(0, 40)}` : 'Keyboard input';
+    }
+    case 'chrome_javascript': {
+      const code = String(args?.code ?? '')
+        .trim()
+        .replace(/\s+/g, ' ');
+      return code.length > 80 ? code.slice(0, 80) + '…' : code || 'Execute JS';
+    }
+    case 'chrome_close_tabs': {
+      const ids = args?.tabIds;
+      return Array.isArray(ids) ? `Close ${ids.length} tab(s)` : 'Close tab(s)';
+    }
+    case 'chrome_handle_dialog': {
+      const action = args?.action || '';
+      const text = args?.text ? ` "${String(args.text).slice(0, 30)}"` : '';
+      return action ? `${action} dialog${text}` : 'Handle dialog';
+    }
+    case 'chrome_computer': {
+      const action = String(args?.action || '');
+      const coord = Array.isArray(args?.coordinate)
+        ? ` at (${args.coordinate[0]}, ${args.coordinate[1]})`
+        : '';
+      const text = args?.text ? ` "${String(args.text).slice(0, 30)}"` : '';
+      return action ? `${action}${coord}${text}` : 'Browser interaction';
+    }
+    default:
+      return TOOL_LABELS[name] || '';
+  }
+}
+
 function countdown(expiresAt: number) {
   return Math.max(0, Math.ceil((expiresAt - now.value) / 1000));
 }
@@ -136,7 +220,7 @@ async function loadBridgeState() {
     type: BACKGROUND_MESSAGE_TYPES.GET_BRIDGE_STATUS,
   });
   if (res?.success && res.state) {
-    bridgeState.value = { trustedDomains: [], ...res.state };
+    bridgeState.value = { trustedDomains: [], paused: false, ...res.state };
   }
 }
 
@@ -176,6 +260,13 @@ async function reconnect() {
   await chrome.runtime.sendMessage({ type: BACKGROUND_MESSAGE_TYPES.BRIDGE_RECONNECT });
 }
 
+async function togglePause() {
+  const type = bridgeState.value.paused
+    ? BACKGROUND_MESSAGE_TYPES.BRIDGE_RESUME
+    : BACKGROUND_MESSAGE_TYPES.BRIDGE_PAUSE;
+  await chrome.runtime.sendMessage({ type });
+}
+
 async function approve(id: string) {
   await chrome.runtime.sendMessage({ type: BACKGROUND_MESSAGE_TYPES.BRIDGE_APPROVE_ACTION, id });
 }
@@ -205,7 +296,7 @@ onMounted(async () => {
       message?.type === BACKGROUND_MESSAGE_TYPES.BRIDGE_APPROVALS_CHANGED ||
       message?.type === BACKGROUND_MESSAGE_TYPES.BRIDGE_STATUS_CHANGED
     ) {
-      bridgeState.value = { trustedDomains: [], ...message.payload };
+      bridgeState.value = { trustedDomains: [], paused: false, ...message.payload };
     }
   };
   chrome.runtime.onMessage.addListener(onMessage);
@@ -255,6 +346,9 @@ onUnmounted(() => {
 .dot-bad {
   background: #ef4444;
 }
+.dot-pause {
+  background: #f59e0b;
+}
 
 .status-label {
   font-weight: 600;
@@ -286,6 +380,29 @@ onUnmounted(() => {
   background: #cbd5e1;
 }
 
+.btn-pause {
+  background: #fef3c7;
+  color: #92400e;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-pause:hover {
+  background: #fde68a;
+}
+.btn-pause--resume {
+  background: #dcfce7;
+  color: #166534;
+}
+.btn-pause--resume:hover {
+  background: #bbf7d0;
+}
+
 /* Approval card */
 .approval-card {
   margin: 8px 10px 0;
@@ -310,6 +427,20 @@ onUnmounted(() => {
   font-size: 12px;
   color: #92400e;
   font-weight: 600;
+}
+
+.approval-desc {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1e293b;
+  background: #f1f5f9;
+  border-radius: 5px;
+  padding: 4px 7px;
+  margin-bottom: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'Menlo', 'Monaco', monospace;
 }
 
 .approval-url {

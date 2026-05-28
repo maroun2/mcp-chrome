@@ -29,6 +29,8 @@ export const BACKGROUND_MESSAGE_TYPES = {
   BRIDGE_DENY_ACTION: 'bridge_deny_action',
   BRIDGE_RECONNECT: 'bridge_reconnect',
   BRIDGE_REMOVE_TRUSTED_DOMAIN: 'bridge_remove_trusted_domain',
+  BRIDGE_PAUSE: 'bridge_pause',
+  BRIDGE_RESUME: 'bridge_resume',
   INITIALIZE_SEMANTIC_ENGINE: 'initialize_semantic_engine',
   // Record & Replay background control and queries
   RR_START_RECORDING: 'rr_start_recording',

@@ -31,6 +31,7 @@ const pendingPayloads = new Map<string, { name: string; args: any }>();
 const history: ActionHistoryItem[] = [];
 const trustedDomains = new Set<string>();
 let connected = false;
+let paused = false;
 
 async function loadSettings() {
   const values = await chrome.storage.sync.get([
@@ -77,6 +78,7 @@ function broadcastStatus() {
 function getBridgeState() {
   return {
     connected,
+    paused,
     serverUrl: bridgeUrl,
     pending: Array.from(pendingApprovals.values()),
     history: [...history],
@@ -152,6 +154,14 @@ async function handleBridgeMessage(raw: unknown) {
 
   if (message.type === 'approval_request') {
     const id = String(message.id);
+
+    // Auto-deny when paused
+    if (paused) {
+      send({ type: 'denied', id });
+      addHistory({ id, name: String(message.name), status: 'denied', timestamp: Date.now() });
+      return;
+    }
+
     const currentUrl = await getCurrentPageUrl();
 
     // Check if this page's hostname is trusted — auto-approve silently
@@ -319,6 +329,18 @@ export function initBridgeWebSocket() {
     }
     if (message?.type === BACKGROUND_MESSAGE_TYPES.BRIDGE_REMOVE_TRUSTED_DOMAIN) {
       removeTrustedDomain(String(message.domain)).then(() => sendResponse({ success: true }));
+      return true;
+    }
+    if (message?.type === BACKGROUND_MESSAGE_TYPES.BRIDGE_PAUSE) {
+      paused = true;
+      broadcastState();
+      sendResponse({ success: true });
+      return true;
+    }
+    if (message?.type === BACKGROUND_MESSAGE_TYPES.BRIDGE_RESUME) {
+      paused = false;
+      broadcastState();
+      sendResponse({ success: true });
       return true;
     }
     return false;
