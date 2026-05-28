@@ -53,7 +53,6 @@ interface ScreenshotToolParams {
   height?: number;
   storeBase64?: boolean;
   fullPage?: boolean;
-  savePng?: boolean;
   maxHeight?: number; // Maximum height to capture in pixels (for infinite scroll pages)
 }
 
@@ -112,13 +111,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
    * Execute screenshot operation
    */
   async execute(args: ScreenshotToolParams): Promise<ToolResult> {
-    const {
-      name = 'screenshot',
-      selector,
-      storeBase64 = true,
-      fullPage = false,
-      savePng = false,
-    } = args;
+    const { name = 'screenshot', selector, storeBase64 = true, fullPage = false } = args;
 
     console.log(`Starting screenshot with options:`, args);
 
@@ -141,7 +134,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
     let finalImageDataUrl: string | undefined;
     let finalImageWidthCss: number | undefined;
     let finalImageHeightCss: number | undefined;
-    const results: any = { base64: null, fileSaved: false };
+    const results: any = { base64: null };
     let originalScroll: { x: number; y: number } | null = null;
     let didPreparePage = false;
     let pageDetails: ScreenshotPageDetails | undefined;
@@ -301,45 +294,6 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
           ],
           isError: false,
         };
-      }
-
-      if (savePng === true) {
-        // Save PNG file to downloads
-        this.logInfo('Saving PNG...');
-        try {
-          // Generate filename
-          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-          const filename = `${name.replace(/[^a-z0-9_-]/gi, '_') || 'screenshot'}_${timestamp}.png`;
-
-          // Use Chrome's download API to save the file
-          const downloadId = await chrome.downloads.download({
-            url: finalImageDataUrl,
-            filename: filename,
-            saveAs: false,
-          });
-
-          results.downloadId = downloadId;
-          results.filename = filename;
-          results.fileSaved = true;
-
-          // Try to get the full file path
-          try {
-            // Wait a moment to ensure download info is updated
-            await new Promise((resolve) => setTimeout(resolve, 100));
-
-            // Search for download item to get full path
-            const [downloadItem] = await chrome.downloads.search({ id: downloadId });
-            if (downloadItem && downloadItem.filename) {
-              // Add full path to response
-              results.fullPath = downloadItem.filename;
-            }
-          } catch (pathError) {
-            console.warn('Could not get full file path:', pathError);
-          }
-        } catch (error) {
-          console.error('Error saving PNG file:', error);
-          results.saveError = String(error instanceof Error ? error.message : error);
-        }
       }
     } catch (error) {
       console.error('Error during screenshot execution:', error);

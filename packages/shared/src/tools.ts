@@ -481,11 +481,6 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'boolean',
           description: 'Capture the entire page by scrolling (default: false)',
         },
-        savePng: {
-          type: 'boolean',
-          description:
-            'Save screenshot as a PNG file to Chrome Downloads (default: false). Only useful when the agent runs on the same machine as Chrome. When using a remote bridge set this to false and use storeBase64 instead.',
-        },
       },
       required: [],
     },
