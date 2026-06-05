@@ -105,8 +105,8 @@ class NavigateTool extends BaseBrowserToolExecutor {
 
         // Respect background flag for focus behavior
         await this.ensureFocus(targetTab, {
-          activate: background !== true,
-          focusWindow: background !== true,
+          activate: background === false,
+          focusWindow: background === false,
         });
 
         if (url === 'forward') {
@@ -262,8 +262,8 @@ class NavigateTool extends BaseBrowserToolExecutor {
         }
         // Optionally bring to foreground based on background flag
         await this.ensureFocus(existingTab, {
-          activate: background !== true,
-          focusWindow: background !== true,
+          activate: background === false,
+          focusWindow: background === false,
         });
 
         console.log(`Activated existing Tab ID: ${existingTab.id}`);
@@ -301,7 +301,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
           url: url,
           width: typeof width === 'number' ? width : DEFAULT_WINDOW_WIDTH,
           height: typeof height === 'number' ? height : DEFAULT_WINDOW_HEIGHT,
-          focused: background === true ? false : true,
+          focused: background === false,
         });
 
         if (newWindow && newWindow.id !== undefined) {
@@ -350,9 +350,9 @@ class NavigateTool extends BaseBrowserToolExecutor {
           const newTab = await chrome.tabs.create({
             url: url,
             windowId: targetWindow.id,
-            active: background === true ? false : true,
+            active: background === false,
           });
-          if (background !== true) {
+          if (background === false) {
             await chrome.windows.update(targetWindow.id, { focused: true });
           }
 
@@ -640,9 +640,6 @@ class SwitchTabTool extends BaseBrowserToolExecutor {
     console.log(`Attempting to switch to tab ID: ${tabId} in window ID: ${windowId}`);
 
     try {
-      if (windowId !== undefined) {
-        await chrome.windows.update(windowId, { focused: true });
-      }
       await chrome.tabs.update(tabId, { active: true });
 
       const updatedTab = await chrome.tabs.get(tabId);

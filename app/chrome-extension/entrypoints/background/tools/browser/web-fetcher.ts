@@ -62,7 +62,7 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
         } else {
           // Create new tab with the URL
           console.log(`No existing tab found with URL: ${url}, creating new tab`);
-          tab = await chrome.tabs.create({ url, active: background ? false : true });
+          tab = await chrome.tabs.create({ url, active: background === false });
 
           // Wait for page to load
           console.log('Waiting for page to load...');
@@ -85,7 +85,7 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
       }
 
       // Optionally bring tab/window to foreground
-      if (!background) {
+      if (background === false) {
         await chrome.tabs.update(tab.id, { active: true });
         await chrome.windows.update(tab.windowId, { focused: true });
       }

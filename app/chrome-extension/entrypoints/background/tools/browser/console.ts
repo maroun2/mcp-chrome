@@ -318,7 +318,7 @@ class ConsoleTool extends BaseBrowserToolExecutor {
 
     if (existingTabs.length > 0 && existingTabs[0]?.id) {
       const tab = existingTabs[0];
-      if (!background) {
+      if (background === false) {
         // Activate the existing tab
         await chrome.tabs.update(tab.id!, { active: true });
         await chrome.windows.update(tab.windowId, { focused: true });
@@ -326,7 +326,7 @@ class ConsoleTool extends BaseBrowserToolExecutor {
       return tab;
     } else {
       // Create new tab with the URL
-      const createInfo: chrome.tabs.CreateProperties = { url, active: background ? false : true };
+      const createInfo: chrome.tabs.CreateProperties = { url, active: background === false };
       if (typeof windowId === 'number') createInfo.windowId = windowId;
       const newTab = await chrome.tabs.create(createInfo);
       // Wait for tab to be ready
