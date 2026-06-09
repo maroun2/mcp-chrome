@@ -12,6 +12,7 @@ import {
 import { TOOL_SCHEMAS } from 'chrome-mcp-shared';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { getBridgeToken } from '../bridge-config';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -63,7 +64,10 @@ export const ensureMcpClient = async () => {
 
     const config = loadConfig();
     mcpClient = new Client({ name: 'Mcp Chrome Proxy', version: '1.0.0' }, { capabilities: {} });
-    const transport = new StreamableHTTPClientTransport(new URL(config.url), {});
+    const token = getBridgeToken();
+    const transport = new StreamableHTTPClientTransport(new URL(config.url), {
+      requestInit: { headers: { Authorization: `Bearer ${token}` } },
+    });
     await mcpClient.connect(transport);
     return mcpClient;
   } catch (error) {
