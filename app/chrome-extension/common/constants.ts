@@ -9,6 +9,10 @@ export const NATIVE_HOST = {
   DEFAULT_PORT: 12306,
 } as const;
 
+export const BRIDGE_SERVER = {
+  DEFAULT_URL: 'ws://127.0.0.1:12306',
+} as const;
+
 // Chrome Extension Icons
 export const ICONS = {
   NOTIFICATION: 'icon/48.png',
@@ -221,6 +225,10 @@ export const SEMANTIC_CONFIG = {
 export const STORAGE_KEYS = {
   SERVER_STATUS: 'serverStatus',
   NATIVE_SERVER_PORT: 'nativeServerPort',
+  BRIDGE_SERVER_URL: 'bridgeServerUrl',
+  BRIDGE_TOKEN: 'bridgeToken',
+  BRIDGE_AUTO_CONNECT: 'bridgeAutoConnect',
+  TRUSTED_DOMAINS: 'trustedDomains',
   NATIVE_AUTO_CONNECT_ENABLED: 'nativeAutoConnectEnabled',
   SEMANTIC_MODEL: 'selectedModel',
   USER_PREFERENCES: 'userPreferences',

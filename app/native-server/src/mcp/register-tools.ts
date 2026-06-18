@@ -5,6 +5,8 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import nativeMessagingHostInstance from '../native-messaging-host';
+import { bridgeWsManager } from '../bridge-ws';
+import { requiresApproval } from './tool-approval';
 import { NativeMessageType, TOOL_SCHEMAS } from 'chrome-mcp-shared';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
@@ -13,7 +15,7 @@ async function listDynamicFlowTools(): Promise<Tool[]> {
     const response = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
       {},
       'rr_list_published_flows',
-      20000,
+      500,
     );
     if (response && response.status === 'success' && Array.isArray(response.items)) {
       const tools: Tool[] = [];
@@ -117,15 +119,24 @@ const handleToolCall = async (name: string, args: any): Promise<CallToolResult> 
         };
       }
     }
-    // 发送请求到Chrome扩展并等待响应
-    const response = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
-      {
-        name,
-        args,
-      },
-      NativeMessageType.CALL_TOOL,
-      120000, // 延长到 120 秒，避免性能分析等长任务超时
-    );
+    const approvalRequired = requiresApproval(name, args);
+    if (approvalRequired && !bridgeWsManager.hasClient()) {
+      return {
+        content: [{ type: 'text', text: 'No approval channel connected' }],
+        isError: true,
+      };
+    }
+
+    const response = bridgeWsManager.hasClient()
+      ? await bridgeWsManager.callTool(name, args, approvalRequired)
+      : await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
+          {
+            name,
+            args,
+          },
+          NativeMessageType.CALL_TOOL,
+          120000, // 延长到 120 秒，避免性能分析等长任务超时
+        );
     if (response.status === 'success') {
       return response.data;
     } else {

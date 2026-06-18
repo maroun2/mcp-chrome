@@ -14,7 +14,7 @@ import type { UnixMillis } from './json';
 export interface TimeoutPolicy {
   /** 超时时间（毫秒） */
   ms: UnixMillis;
-  /** 超时范围：attempt=每次尝试, node=整个节点执行 */
+  /** 超时范围：attempt=每次尝试, node=entire节点执行 */
   scope?: 'attempt' | 'node';
 }
 
@@ -82,7 +82,7 @@ export interface NodePolicy {
 
 /**
  * Flow 级策略
- * @description 整个 Flow 的执行策略配置
+ * @description entire Flow 的执行策略配置
  */
 export interface FlowPolicy {
   /** 默认节点策略 */

@@ -59,7 +59,7 @@ export type RRErrorCode = (typeof RR_ERROR_CODES)[keyof typeof RR_ERROR_CODES];
 
 /**
  * Record-Replay 错误接口
- * @description 统一的错误表示，支持错误链和可重试标记
+ * @description unified的错误表示，支持错误链和可重试mark
  */
 export interface RRError {
   /** 错误码 */

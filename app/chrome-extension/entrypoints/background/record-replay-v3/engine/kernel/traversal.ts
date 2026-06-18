@@ -1,6 +1,6 @@
 /**
- * @fileoverview DAG 遍历和校验
- * @description 提供 Flow DAG 的校验、遍历和下一节点查找功能
+ * @fileoverview DAG traverse和校验
+ * @description provide Flow DAG 的校验、traverse和下一节点find功能
  */
 
 import type { NodeId, EdgeLabel } from '../../domain/ids';
@@ -111,7 +111,7 @@ export function detectCycle(flow: FlowV3): NodeId[] | null {
 }
 
 /**
- * 查找下一个节点
+ * find下一个节点
  * @param flow Flow 定义
  * @param currentNodeId 当前节点 ID
  * @param label 边标签（可选，默认使用 default）
@@ -153,7 +153,7 @@ export function findNextNode(
 }
 
 /**
- * 查找指定标签的边
+ * find指定标签的边
  */
 export function findEdgeByLabel(
   flow: FlowV3,
@@ -178,7 +178,7 @@ export function getInEdges(flow: FlowV3, nodeId: NodeId): EdgeV3[] {
 }
 
 /**
- * 构建邻接表
+ * Build adjacency list
  */
 function buildAdjacencyMap(flow: FlowV3): Map<NodeId, NodeId[]> {
   const map = new Map<NodeId, NodeId[]>();

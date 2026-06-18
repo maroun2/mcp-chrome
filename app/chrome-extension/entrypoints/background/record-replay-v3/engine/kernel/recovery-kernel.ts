@@ -1,8 +1,8 @@
 /**
- * @fileoverview 支持崩溃恢复的 ExecutionKernel 实现 (P3-06)
+ * @fileoverview 支持crash恢复的 ExecutionKernel 实现 (P3-06)
  * @description
- * 提供 ExecutionKernel 的恢复增强实现，支持 `recover()` 方法。
- * 通过委托给 RecoveryCoordinator 实现崩溃恢复。
+ * provide ExecutionKernel 的恢复enhancement实现，支持 `recover()` 方法。
+ * 通过委托给 RecoveryCoordinator 实现crash恢复。
  *
  * 其他执行方法（startRun, pauseRun 等）暂未实现，将在后续阶段完成。
  */
@@ -20,7 +20,7 @@ import type { ExecutionKernel, RunStartRequest, RunStatusInfo } from './kernel';
 // ==================== Types ====================
 
 /**
- * 支持恢复的 Kernel 依赖
+ * 支持恢复的 Kernel dependency
  */
 export interface RecoveryEnabledKernelDeps {
   /** 存储层 */

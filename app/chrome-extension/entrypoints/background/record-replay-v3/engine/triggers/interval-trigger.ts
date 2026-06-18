@@ -86,7 +86,7 @@ export function createIntervalTriggerHandler(
   let listening = false;
 
   /**
-   * 递增版本号以使挂起的操作失效
+   * 递增版本号以使pending的操作失效
    */
   function bumpVersion(triggerId: TriggerId): number {
     const next = (versions.get(triggerId) ?? 0) + 1;

@@ -101,9 +101,9 @@ export interface ExecutionKernel {
   cancelRun(runId: RunId, reason?: string): Promise<void>;
 
   /**
-   * 执行调试命令
+   * 执行调试command
    * @param runId Run ID
-   * @param cmd 调试命令
+   * @param cmd 调试command
    */
   debug(
     runId: RunId,

@@ -38,7 +38,7 @@ export interface VariableDefinition {
   label?: string;
   /** 描述 */
   description?: string;
-  /** 是否敏感（不显示/导出） */
+  /** 是否敏感（不显示/export） */
   sensitive?: boolean;
   /** 是否必需 */
   required?: boolean;

@@ -122,7 +122,7 @@ let dbInstance: IDBDatabase | null = null;
 let dbPromise: Promise<IDBDatabase> | null = null;
 
 /**
- * 打开 V3 数据库
+ * open V3 数据库
  * @description 单例模式，确保只有一个数据库连接
  */
 export async function openRrV3Db(): Promise<IDBDatabase> {
@@ -167,7 +167,7 @@ export async function openRrV3Db(): Promise<IDBDatabase> {
 }
 
 /**
- * 关闭数据库连接
+ * close数据库连接
  * @description 主要用于测试
  */
 export function closeRrV3Db(): void {

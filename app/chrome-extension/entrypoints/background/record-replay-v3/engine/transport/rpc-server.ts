@@ -44,7 +44,7 @@ export interface RpcServerConfig {
 }
 
 /**
- * 活跃的 Port 连接
+ * active的 Port 连接
  */
 interface PortConnection {
   port: chrome.runtime.Port;
@@ -159,7 +159,7 @@ export class RpcServer {
   };
 
   /**
-   * 广播事件
+   * broadcast事件
    */
   private broadcastEvent(event: RunEvent): void {
     const message = createRpcEventMessage(event);
@@ -182,7 +182,7 @@ export class RpcServer {
 
   /**
    * 处理 enqueueRun 请求
-   * @description 委托给共享的 enqueueRun 服务
+   * @description 委托给shared的 enqueueRun 服务
    */
   private async handleEnqueueRun(params: JsonObject | undefined): Promise<JsonValue> {
     const result = await enqueueRun(
@@ -270,7 +270,7 @@ export class RpcServer {
       finishedAt: now,
     });
 
-    // 5. 发布 run.canceled 事件（通过 EventsBus 以确保广播）
+    // 5. 发布 run.canceled 事件（通过 EventsBus 以确保broadcast）
     await this.events.append({
       runId,
       type: 'run.canceled',
@@ -579,7 +579,7 @@ export class RpcServer {
     const createdAt = existingFlow?.createdAt ?? now;
     const updatedAt = now;
 
-    // 构建完整的 FlowV3
+    // build完整的 FlowV3
     const flow: FlowV3 = {
       schemaVersion: CURRENT_FLOW_SCHEMA_VERSION,
       id,

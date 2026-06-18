@@ -20,15 +20,21 @@ import {
 import { NativeMessagingHost } from '../native-messaging-host';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID } from 'node:crypto';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { getMcpServer } from '../mcp/mcp-server';
+import { Server as McpServerBase } from '@modelcontextprotocol/sdk/server/index.js';
+import { setupTools } from '../mcp/register-tools';
 import { AgentStreamManager } from '../agent/stream-manager';
 import { AgentChatService } from '../agent/chat-service';
 import { CodexEngine } from '../agent/engines/codex';
 import { ClaudeEngine } from '../agent/engines/claude';
 import { closeDb } from '../agent/db';
 import { registerAgentRoutes } from './routes';
+import { getBridgeHost, getBridgePort, getBridgeToken, isValidBearerAuth } from '../bridge-config';
+import { bridgeWsManager } from '../bridge-ws';
 
 // ============================================================
 // Types
@@ -48,6 +54,8 @@ export class Server {
   private nativeHost: NativeMessagingHost | null = null;
   private transportsMap: Map<string, StreamableHTTPServerTransport | SSEServerTransport> =
     new Map();
+  // In-memory transport sessions for non-SSE (plain JSON) MCP clients
+  private jsonSessions = new Map<string, InMemoryTransport>();
   private agentStreamManager: AgentStreamManager;
   private agentChatService: AgentChatService;
 
@@ -60,6 +68,7 @@ export class Server {
     });
     this.setupPlugins();
     this.setupRoutes();
+    this.setupWebSocketBridge();
   }
 
   /**
@@ -165,8 +174,13 @@ export class Server {
   // ============================================================
 
   private setupMcpRoutes(): void {
+    const requireAuth = async (request: FastifyRequest, reply: FastifyReply) => {
+      if (isValidBearerAuth(request.headers.authorization)) return;
+      reply.code(HTTP_STATUS.UNAUTHORIZED).send({ error: 'Unauthorized' });
+    };
+
     // SSE endpoint
-    this.fastify.get('/sse', async (_, reply) => {
+    this.fastify.get('/sse', { preHandler: requireAuth }, async (_, reply) => {
       try {
         reply.raw.writeHead(HTTP_STATUS.OK, {
           'Content-Type': 'text/event-stream',
@@ -193,7 +207,7 @@ export class Server {
     });
 
     // SSE messages endpoint
-    this.fastify.post('/messages', async (req, reply) => {
+    this.fastify.post('/messages', { preHandler: requireAuth }, async (req, reply) => {
       try {
         const { sessionId } = req.query as { sessionId?: string };
         const transport = this.transportsMap.get(sessionId || '') as SSEServerTransport;
@@ -211,7 +225,67 @@ export class Server {
     });
 
     // MCP POST endpoint
-    this.fastify.post('/mcp', async (request, reply) => {
+    this.fastify.post('/mcp', { preHandler: requireAuth }, async (request, reply) => {
+      const originalAccept = request.raw.headers['accept'] || '';
+      const clientWantsSSE = originalAccept.includes('text/event-stream');
+
+      // Non-SSE clients (e.g. Agor): use InMemoryTransport to serve plain JSON responses
+      if (!clientWantsSSE) {
+        const sessionId = request.headers['mcp-session-id'] as string | undefined;
+        const body = request.body as JSONRPCMessage;
+
+        let clientTransport: InMemoryTransport;
+        let newSessionId: string | undefined;
+
+        if (!sessionId && isInitializeRequest(body)) {
+          newSessionId = randomUUID();
+          const [ct, st] = InMemoryTransport.createLinkedPair();
+          clientTransport = ct;
+          await ct.start();
+          // Fresh server per session — singleton only supports one transport at a time
+          const sessionServer = new McpServerBase(
+            { name: 'ChromeMcpServer', version: '1.0.0' },
+            { capabilities: { tools: {} } },
+          );
+          setupTools(sessionServer);
+          await sessionServer.connect(st);
+          this.jsonSessions.set(newSessionId, ct);
+        } else if (sessionId && this.jsonSessions.has(sessionId)) {
+          clientTransport = this.jsonSessions.get(sessionId)!;
+        } else {
+          reply.code(HTTP_STATUS.BAD_REQUEST).send({ error: ERROR_MESSAGES.INVALID_MCP_REQUEST });
+          return;
+        }
+
+        // Notifications have no response — fire and forget, return 202
+        const isNotification = 'method' in body && !('id' in body);
+        if (isNotification) {
+          clientTransport.send(body).catch(() => {}); // ignore errors
+          const respHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (newSessionId) respHeaders['mcp-session-id'] = newSessionId;
+          reply.code(202).headers(respHeaders).send({});
+          return;
+        }
+
+        const response = await new Promise<JSONRPCMessage>((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('MCP response timeout')), 30_000);
+          const prev = clientTransport.onmessage;
+          clientTransport.onmessage = (msg) => {
+            clearTimeout(timer);
+            clientTransport.onmessage = prev;
+            resolve(msg);
+          };
+          clientTransport.send(body).catch(reject);
+        });
+
+        const respHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (newSessionId) respHeaders['mcp-session-id'] = newSessionId;
+        reply.code(HTTP_STATUS.OK).headers(respHeaders).send(response);
+        return;
+      }
+
+      // SSE-capable clients: standard Streamable HTTP transport
+      request.raw.headers['accept'] = 'application/json, text/event-stream';
       const sessionId = request.headers['mcp-session-id'] as string | undefined;
       let transport: StreamableHTTPServerTransport | undefined = this.transportsMap.get(
         sessionId || '',
@@ -253,7 +327,7 @@ export class Server {
     });
 
     // MCP GET endpoint (SSE stream)
-    this.fastify.get('/mcp', async (request, reply) => {
+    this.fastify.get('/mcp', { preHandler: requireAuth }, async (request, reply) => {
       const sessionId = request.headers['mcp-session-id'] as string | undefined;
       const transport = sessionId
         ? (this.transportsMap.get(sessionId) as StreamableHTTPServerTransport)
@@ -286,7 +360,7 @@ export class Server {
     });
 
     // MCP DELETE endpoint
-    this.fastify.delete('/mcp', async (request, reply) => {
+    this.fastify.delete('/mcp', { preHandler: requireAuth }, async (request, reply) => {
       const sessionId = request.headers['mcp-session-id'] as string | undefined;
       const transport = sessionId
         ? (this.transportsMap.get(sessionId) as StreamableHTTPServerTransport)
@@ -312,11 +386,23 @@ export class Server {
     });
   }
 
+  private setupWebSocketBridge(): void {
+    bridgeWsManager.start();
+    this.fastify.server.on('upgrade', (request, socket, head) => {
+      if (!bridgeWsManager.handleUpgrade(request, socket as import('node:net').Socket, head)) {
+        socket.destroy();
+      }
+    });
+  }
+
   // ============================================================
   // Server Lifecycle
   // ============================================================
 
-  public async start(port = NATIVE_SERVER_PORT, nativeHost: NativeMessagingHost): Promise<void> {
+  public async start(
+    port = getBridgePort(NATIVE_SERVER_PORT),
+    nativeHost: NativeMessagingHost,
+  ): Promise<void> {
     if (!this.nativeHost) {
       this.nativeHost = nativeHost;
     } else if (this.nativeHost !== nativeHost) {
@@ -328,11 +414,14 @@ export class Server {
     }
 
     try {
-      await this.fastify.listen({ port, host: SERVER_CONFIG.HOST });
+      const host = getBridgeHost();
+      const token = getBridgeToken();
+      await this.fastify.listen({ port, host });
 
       // Set port environment variables after successful listen for Chrome MCP URL resolution
       process.env.CHROME_MCP_PORT = String(port);
       process.env.MCP_HTTP_PORT = String(port);
+      process.env.BRIDGE_TOKEN = token;
 
       this.isRunning = true;
     } catch (err) {

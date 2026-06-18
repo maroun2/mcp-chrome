@@ -8,7 +8,7 @@ export enum NATIVE_MESSAGE_TYPE {
   ERROR = 'error',
 }
 
-export const NATIVE_SERVER_PORT = 12306;
+export const NATIVE_SERVER_PORT = Number.parseInt(process.env.BRIDGE_PORT || '12306', 10);
 
 // Timeout constants (in milliseconds)
 export const TIMEOUTS = {
@@ -19,7 +19,7 @@ export const TIMEOUTS = {
 
 // Server configuration
 export const SERVER_CONFIG = {
-  HOST: '127.0.0.1',
+  HOST: process.env.BRIDGE_HOST || '127.0.0.1',
   /**
    * CORS origin whitelist - only allow Chrome/Firefox extensions and local debugging.
    * Use RegExp patterns for extension origins, string for exact match.
@@ -34,6 +34,7 @@ export const HTTP_STATUS = {
   CREATED: 201,
   NO_CONTENT: 204,
   BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
   NOT_FOUND: 404,
   INTERNAL_SERVER_ERROR: 500,
   GATEWAY_TIMEOUT: 504,

@@ -39,6 +39,9 @@ export const TOOL_NAMES = {
     PERFORMANCE_STOP_TRACE: 'performance_stop_trace',
     PERFORMANCE_ANALYZE_INSIGHT: 'performance_analyze_insight',
     GIF_RECORDER: 'chrome_gif_recorder',
+    FIND: 'chrome_find',
+    RESIZE_WINDOW: 'chrome_resize_window',
+    UPDATE_PLAN: 'chrome_update_plan',
   },
   RECORD_REPLAY: {
     FLOW_RUN: 'record_replay_flow_run',
@@ -49,7 +52,8 @@ export const TOOL_NAMES = {
 export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.GET_WINDOWS_AND_TABS,
-    description: 'Get all currently open browser windows and tabs',
+    description:
+      'Get all currently open browser windows and tabs. CRITICAL: Call this first before any browser automation sequence to know which tabs exist, their IDs, URLs, and which tab is active in each window.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -160,7 +164,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.READ_PAGE,
     description:
-      'Get an accessibility tree representation of visible elements on the page. Only returns elements that are visible in the viewport. Optionally filter for only interactive elements.\nTip: If the returned elements do not include the specific element you need, use the computer tool\'s screenshot (action="screenshot") to capture the element\'s on-screen coordinates, then operate by coordinates.',
+      'Get an accessibility tree of visible elements on the page with element refs. Use refs with chrome_click_element, chrome_fill_or_select, or chrome_computer. Call this after every action to verify the action took effect. Tip: If the needed element is missing, use chrome_find to search by natural language, or use chrome_computer (screenshot) to see coordinates.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -202,7 +206,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         background: {
           type: 'boolean',
           description:
-            'Avoid focusing/activating tab/window for certain operations (best-effort). Default: false',
+            'Avoid focusing/activating tab/window for certain operations (best-effort). Default: true',
         },
         action: {
           type: 'string',
@@ -397,7 +401,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.NAVIGATE,
     description:
-      'Navigate to a URL, refresh the current tab, or navigate browser history (back/forward)',
+      'Navigate to a URL, refresh the current tab, or navigate browser history (back/forward). After navigating, call chrome_read_page or chrome_computer (screenshot) to verify the page loaded correctly before proceeding.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -423,7 +427,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         background: {
           type: 'boolean',
           description:
-            'Perform the operation without stealing focus (do not activate the tab or focus the window). Default: false',
+            'Perform the operation without stealing focus (do not activate the tab or focus the window). Default: true',
         },
         width: {
           type: 'number',
@@ -464,23 +468,18 @@ export const TOOL_SCHEMAS: Tool[] = [
         background: {
           type: 'boolean',
           description:
-            'Attempt capture without bringing tab/window to foreground. CDP-based capture is used for simple viewport captures. For element/full-page capture, the tab may still be made active in its window without focusing the window. Default: false',
+            'Attempt capture without bringing tab/window to foreground. CDP-based capture is used for simple viewport captures. For element/full-page capture, the tab may still be made active in its window without focusing the window. Default: true',
         },
         width: { type: 'number', description: 'Width in pixels (default: 800)' },
         height: { type: 'number', description: 'Height in pixels (default: 600)' },
         storeBase64: {
           type: 'boolean',
           description:
-            'return screenshot in base64 format (default: false) if you want to see the page, recommend set this to be true',
+            'Return screenshot as inline base64 (default: true). Always use this when running via a remote bridge — the saved-file path is on the user machine and not accessible to the agent.',
         },
         fullPage: {
           type: 'boolean',
-          description: 'Store screenshot of the entire page (default: true)',
-        },
-        savePng: {
-          type: 'boolean',
-          description:
-            'Save screenshot as PNG file (default: true)，if you want to see the page, recommend set this to be false, and set storeBase64 to be true',
+          description: 'Capture the entire page by scrolling (default: false)',
         },
       },
       required: [],
@@ -539,7 +538,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
         background: {
           type: 'boolean',
-          description: 'Do not activate tab/focus window while fetching (default: false)',
+          description: 'Do not activate tab/focus window while fetching (default: true)',
         },
         htmlContent: {
           type: 'boolean',
@@ -1090,7 +1089,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
         background: {
           type: 'boolean',
-          description: 'Do not activate tab/focus window when capturing via CDP. Default: false',
+          description: 'Do not activate tab/focus window when capturing via CDP. Default: true',
         },
         includeExceptions: {
           type: 'boolean',
@@ -1395,6 +1394,78 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
       },
       required: ['action'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.FIND,
+    description:
+      'Find elements on the page by natural language query (e.g. "search bar", "login button", "price"). Returns up to 20 matching elements with refs and coordinates. Use refs directly with chrome_click_element or chrome_fill_or_select. Faster than reading the full accessibility tree when you know what you\'re looking for.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description:
+            'Natural language description of the element(s) to find (e.g. "submit button", "email input", "navigation menu").',
+        },
+        tabId: {
+          type: 'number',
+          description: 'Target tab ID (default: active tab).',
+        },
+        windowId: {
+          type: 'number',
+          description: 'Target window ID to pick active tab when tabId is omitted.',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.RESIZE_WINDOW,
+    description: 'Resize the browser window to the specified width and height in pixels.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        width: {
+          type: 'number',
+          description: 'Target window width in pixels (e.g. 1280).',
+        },
+        height: {
+          type: 'number',
+          description: 'Target window height in pixels (e.g. 800).',
+        },
+        tabId: {
+          type: 'number',
+          description: "Tab ID to identify which window to resize (default: active tab's window).",
+        },
+        windowId: {
+          type: 'number',
+          description: 'Window ID to resize directly (alternative to tabId).',
+        },
+      },
+      required: ['width', 'height'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.UPDATE_PLAN,
+    description:
+      'Present a plan to the user before taking browser actions. Show which domains you will visit and what you intend to do. Call this at the start of multi-step browser tasks so the user understands the scope. Returns immediately (auto-approved).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        domains: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'List of domains you will visit (e.g. ["github.com", "stackoverflow.com"]).',
+        },
+        approach: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'High-level steps describing what you will do. Keep concise, 3-7 items (e.g. ["Navigate to login page", "Fill credentials", "Submit form"]).',
+        },
+      },
+      required: ['domains', 'approach'],
     },
   },
 ];

@@ -28,3 +28,6 @@ export {
   performanceAnalyzeInsightTool,
 } from './performance';
 export { gifRecorderTool } from './gif-recorder';
+export { findTool } from './find';
+export { resizeWindowTool } from './resize-window';
+export { updatePlanTool } from './update-plan';

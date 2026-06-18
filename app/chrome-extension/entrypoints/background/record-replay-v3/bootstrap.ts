@@ -56,7 +56,7 @@ import { createStoragePort } from './index';
 type Logger = Pick<Console, 'debug' | 'info' | 'warn' | 'error'>;
 
 /**
- * V3 运行时句柄
+ * V3 运行时handle
  */
 export interface V3Runtime {
   ownerId: string;
@@ -140,7 +140,7 @@ async function resolveRunTab(input: {
 }
 
 /**
- * 将 Run 标记为失败
+ * 将 Run mark为失败
  * 注意：会重新读取最新的 RunRecord 以获取正确的 startedAt
  */
 async function failRun(
@@ -275,7 +275,7 @@ function createDefaultRunExecutor(deps: {
 
 /**
  * 启动 RR-V3 运行时
- * @returns 运行时句柄
+ * @returns 运行时handle
  */
 export async function bootstrapV3(): Promise<V3Runtime> {
   if (runtime) return runtime;

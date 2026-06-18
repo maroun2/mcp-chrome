@@ -45,7 +45,7 @@ export type RecoveryReason = 'sw_restart' | 'lease_expired';
  * @description 所有可能的运行时事件
  */
 export type RunEvent =
-  // ===== Run 生命周期事件 =====
+  // ===== Run lifeperiod事件 =====
   | (EventBase & { type: 'run.queued'; flowId: FlowId })
   | (EventBase & { type: 'run.started'; flowId: FlowId; tabId: number })
   | (EventBase & { type: 'run.paused'; reason: PauseReason; nodeId?: NodeId })
@@ -58,7 +58,7 @@ export type RunEvent =
       fromStatus: 'running' | 'paused';
       /** 恢复后状态 */
       toStatus: 'queued';
-      /** 原 ownerId（用于审计） */
+      /** 原 ownerId（用于audit） */
       prevOwnerId?: string;
     })
   | (EventBase & { type: 'run.canceled'; reason?: string })
@@ -123,7 +123,7 @@ export const RUN_SCHEMA_VERSION = 3 as const;
 export interface RunRecordV3 {
   /** Schema 版本 */
   schemaVersion: typeof RUN_SCHEMA_VERSION;
-  /** Run 唯一标识符 */
+  /** Run 唯一identify符 */
   id: RunId;
   /** 关联的 Flow ID */
   flowId: FlowId;

@@ -39,8 +39,8 @@ export interface DebuggerState {
 }
 
 /**
- * 调试器命令
- * @description 客户端发送给调试器的命令
+ * 调试器command
+ * @description 客户端发送给调试器的command
  */
 export type DebuggerCommand =
   // ===== 连接控制 =====
@@ -64,11 +64,11 @@ export type DebuggerCommand =
   | { type: 'debug.getVar'; runId: RunId; name: string }
   | { type: 'debug.setVar'; runId: RunId; name: string; value: JsonValue };
 
-/** 调试器命令类型（从联合类型提取） */
+/** 调试器command类型（从联合类型提取） */
 export type DebuggerCommandType = DebuggerCommand['type'];
 
 /**
- * 调试器命令响应
+ * 调试器command响应
  */
 export type DebuggerResponse =
   | { ok: true; state?: DebuggerState; value?: JsonValue }

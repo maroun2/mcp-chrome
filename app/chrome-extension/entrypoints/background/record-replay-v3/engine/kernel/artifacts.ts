@@ -14,11 +14,11 @@ export type ScreenshotResult = { ok: true; base64: string } | { ok: false; error
 
 /**
  * 工件服务接口
- * @description 提供工件获取和存储功能
+ * @description provide工件获取和存储功能
  */
 export interface ArtifactService {
   /**
-   * 截取页面截图
+   * capture页面截图
    * @param tabId Tab ID
    * @param options 截图选项
    */
@@ -66,7 +66,7 @@ export function createNotImplementedArtifactService(): ArtifactService {
 
 /**
  * 创建基于 chrome.tabs.captureVisibleTab 的 ArtifactService
- * @description 使用 Chrome API 截取可见标签页
+ * @description 使用 Chrome API capture可见标签页
  */
 export function createChromeArtifactService(): ArtifactService {
   // In-memory storage for screenshots (could be replaced with IndexedDB)

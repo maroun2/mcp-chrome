@@ -159,7 +159,7 @@ export function convertFlowV2ToV3(v2Flow: V2Flow): ConversionResult<FlowV3> {
   // 7. 转换元数据
   const meta = convertMetaV2ToV3(v2Flow.meta);
 
-  // 8. 构建 V3 Flow
+  // 8. build V3 Flow
   const now = new Date().toISOString() as ISODateTimeString;
   const v3Flow: FlowV3 = {
     schemaVersion: FLOW_SCHEMA_VERSION,
@@ -460,7 +460,7 @@ export function convertFlowV3ToV2(v3Flow: FlowV3): ConversionResult<V2Flow> {
     }));
   }
 
-  // 5. 构建 V2 Flow
+  // 5. build V2 Flow
   const v2Flow: V2Flow = {
     id: v3Flow.id,
     name: v3Flow.name,
@@ -521,7 +521,7 @@ export function convertTriggerV2ToV3(v2Trigger: V2Trigger): ConversionResult<Tri
     return { success: false, errors, warnings };
   }
 
-  // 根据 type 构建不同的 TriggerSpec
+  // 根据 type build不同的 TriggerSpec
   let trigger: TriggerSpec;
 
   switch (v2Trigger.type) {
@@ -554,7 +554,8 @@ export function convertTriggerV2ToV3(v2Trigger: V2Trigger): ConversionResult<Tri
       };
       break;
 
-    case 'schedule': { // 将 V2 schedule 转换为 cron 表达式
+    case 'schedule': {
+      // 将 V2 schedule 转换为 cron 表达式
       const cron = convertScheduleToCron(v2Trigger.schedule);
       if (!cron) {
         errors.push('Could not convert V2 schedule to cron expression');
@@ -595,7 +596,8 @@ function convertScheduleToCron(schedule: V2Trigger['schedule']): string | null {
   if (!schedule) return null;
 
   switch (schedule.type) {
-    case 'interval': { // 将间隔转换为近似 cron（每 N 分钟）
+    case 'interval': {
+      // 将间隔转换为近似 cron（每 N 分钟）
       const intervalMinutes = Math.max(1, Math.round((schedule.intervalMs || 60000) / 60000));
       if (intervalMinutes < 60) {
         return `*/${intervalMinutes} * * * *`;
@@ -613,7 +615,8 @@ function convertScheduleToCron(schedule: V2Trigger['schedule']): string | null {
       }
       return '0 0 * * *'; // 默认每天 0:00
 
-    case 'weekly': { // 每周指定天数和时间
+    case 'weekly': {
+      // 每周指定天数和时间
       const days = (schedule.days || [0]).join(',');
       if (schedule.time) {
         const [hour, minute] = schedule.time.split(':').map(Number);

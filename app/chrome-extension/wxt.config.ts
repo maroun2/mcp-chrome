@@ -34,7 +34,7 @@ export default defineConfig({
   manifest: {
     // Use environment variable for the key, fallback to undefined if not set
     key: CHROME_EXTENSION_KEY,
-    default_locale: 'zh_CN',
+    default_locale: 'en',
     name: '__MSG_extensionName__',
     description: '__MSG_extensionDescription__',
     permissions: [
@@ -49,7 +49,6 @@ export default defineConfig({
       'debugger',
       'history',
       'bookmarks',
-      'offscreen',
       'storage',
       'declarativeNetRequest',
       'alarms',
@@ -57,45 +56,13 @@ export default defineConfig({
       'sidePanel',
     ],
     host_permissions: ['<all_urls>'],
-    options_ui: {
-      page: 'options.html',
-      open_in_tab: true,
-    },
     action: {
-      default_popup: 'popup.html',
       default_title: 'Chrome MCP Server',
     },
     // Chrome Side Panel entry for workflow management
     // Ref: https://developer.chrome.com/docs/extensions/reference/api/sidePanel
     side_panel: {
       default_path: 'sidepanel.html',
-    },
-    // Keyboard shortcuts for quick triggers
-    commands: {
-      // run_quick_trigger_1: {
-      //   suggested_key: { default: 'Ctrl+Shift+1' },
-      //   description: 'Run quick trigger 1',
-      // },
-      // run_quick_trigger_2: {
-      //   suggested_key: { default: 'Ctrl+Shift+2' },
-      //   description: 'Run quick trigger 2',
-      // },
-      // run_quick_trigger_3: {
-      //   suggested_key: { default: 'Ctrl+Shift+3' },
-      //   description: 'Run quick trigger 3',
-      // },
-      // open_workflow_sidepanel: {
-      //   suggested_key: { default: 'Ctrl+Shift+O' },
-      //   description: 'Open workflow sidepanel',
-      // },
-      toggle_web_editor: {
-        suggested_key: { default: 'Ctrl+Shift+O', mac: 'Command+Shift+O' },
-        description: 'Toggle Web Editor mode',
-      },
-      toggle_quick_panel: {
-        suggested_key: { default: 'Ctrl+Shift+U', mac: 'Command+Shift+U' },
-        description: 'Toggle Quick Panel AI Chat',
-      },
     },
     web_accessible_resources: [
       {
